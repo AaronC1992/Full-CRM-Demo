@@ -18,6 +18,19 @@ export type LeadStatus =
 
 export type Priority = 'Cold' | 'Warm' | 'Hot' | 'Urgent';
 
+export type InPersonVisitStatus =
+  | 'Not visited'
+  | 'Planned'
+  | 'Visited'
+  | 'No one available'
+  | 'Spoke with owner'
+  | 'Spoke with employee'
+  | 'Left card'
+  | 'Asked to follow up'
+  | 'Not interested'
+  | 'Follow up scheduled'
+  | 'Converted';
+
 export interface Lead {
   id: number;
   businessName: string;
@@ -53,6 +66,20 @@ export interface Lead {
   tags: string[];
   createdDate: string;
   updatedDate: string;
+  // Route fields (optional — added via migration)
+  latitude?: number | null;
+  longitude?: number | null;
+  placeId?: string;
+  routeEligible?: number;
+  lastVisitedDate?: string;
+  nextVisitDate?: string;
+  inPersonVisitStatus?: InPersonVisitStatus;
+  visitNotes?: string;
+  doNotVisit?: number;
+  preferredVisitTime?: string;
+  businessHours?: string;
+  routeScore?: number | null;
+  routeNotes?: string;
 }
 
 export type LeadInsert = Omit<Lead, 'id' | 'createdDate' | 'updatedDate'>;
@@ -245,6 +272,10 @@ export interface DashboardStats {
   hotLeads: Lead[];
   recentActivity: Activity[];
   upcomingFollowUps: Lead[];
+  routesToday?: number;
+  stopsToday?: number;
+  completedRoutesThisMonth?: number;
+  stopsCompletedThisMonth?: number;
 }
 
 // ─── Import/Export ─────────────────────────────────────────────────────────────
@@ -255,3 +286,124 @@ export interface ImportResult {
   errors: string[];
   details?: string[];
 }
+
+// ─── Route Types ───────────────────────────────────────────────────────────────
+
+export type RouteStatus =
+  | 'Draft'
+  | 'Generated'
+  | 'Optimized'
+  | 'In progress'
+  | 'Completed'
+  | 'Archived';
+
+export type VisitInterestLevel =
+  | 'Not interested'
+  | 'Low'
+  | 'Medium'
+  | 'High'
+  | 'Very hot';
+
+export type VisitNextAction =
+  | 'Call back'
+  | 'Email'
+  | 'Send demo'
+  | 'Build demo website'
+  | 'Send proposal'
+  | 'Schedule meeting'
+  | 'No action';
+
+export interface RoutePlan {
+  id: number;
+  name: string;
+  routeDate: string;
+  startAddress: string;
+  endAddress: string;
+  city: string;
+  state: string;
+  radiusMiles: number | null;
+  startTime: string;
+  endTime: string;
+  status: RouteStatus;
+  totalStops: number;
+  estimatedDriveTime: string;
+  estimatedRouteDistance: string;
+  googleMapsUrl: string;
+  appleMapsUrl: string;
+  notes: string;
+  aiSummary: string;
+  routeGoal: string;
+  createdAt: string;
+  updatedAt: string;
+  stops?: RouteStop[];
+}
+
+export interface RouteStop {
+  id: number;
+  routePlanId: number;
+  leadId: number | null;
+  businessName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  website: string;
+  facebookPage: string;
+  address: string;
+  city: string;
+  state: string;
+  latitude: number | null;
+  longitude: number | null;
+  stopOrder: number;
+  priority: string;
+  leadStatus: string;
+  industry: string;
+  serviceOpportunity: string;
+  suggestedOffer: string;
+  estimatedDealValue: number | null;
+  visitReason: string;
+  talkingPoints: string[];
+  recommendedPitch: string;
+  leaveBehindSuggestion: string;
+  followUpAction: string;
+  estimatedVisitMinutes: number;
+  arrivalWindow: string;
+  notes: string;
+  visitOutcome: string;
+  spokeTo: string;
+  interestLevel: string;
+  followUpDate: string;
+  nextAction: string;
+  visitCompleted: boolean;
+  visitCompletedAt: string;
+  skipped: boolean;
+  skipReason: string;
+  routeScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RouteAIRecommendedStop {
+  leadId: string;
+  businessName: string;
+  visitPriority: number;
+  routeScore: number;
+  visitReason: string;
+  talkingPoints: string[];
+  recommendedPitch: string;
+  suggestedOffer: string;
+  leaveBehindSuggestion: string;
+  followUpAction: string;
+  estimatedVisitMinutes: number;
+  skipReason: string;
+}
+
+export interface RouteAIPlan {
+  routeName: string;
+  routeGoal: string;
+  summary: string;
+  recommendedStops: RouteAIRecommendedStop[];
+  skippedLeads: { leadId: string; businessName: string; reason: string }[];
+  routeStrategy: string;
+  followUpPlan: string;
+}
+

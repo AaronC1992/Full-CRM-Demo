@@ -20,10 +20,25 @@ export async function GET() {
     const recentActivity = db.prepare('SELECT a.*, l.businessName FROM activities a LEFT JOIN leads l ON a.leadId = l.id ORDER BY a.createdDate DESC LIMIT 10').all();
     const upcomingFollowUps = db.prepare("SELECT * FROM leads WHERE nextFollowUpDate != '' AND DATE(nextFollowUpDate) >= DATE(?) AND leadStatus NOT IN ('Won','Lost','Not a fit') ORDER BY nextFollowUpDate ASC LIMIT 8").all(today);
 
+    // Route stats
+    let routesToday = 0;
+    let stopsToday = 0;
+    let completedRoutesThisMonth = 0;
+    let stopsCompletedThisMonth = 0;
+    try {
+      routesToday = (db.prepare("SELECT COUNT(*) as c FROM route_plans WHERE routeDate = ? AND status NOT IN ('Archived')").get(today) as { c: number }).c;
+      const stopsRow = db.prepare("SELECT COALESCE(SUM(totalStops),0) as c FROM route_plans WHERE routeDate = ?").get(today) as { c: number };
+      stopsToday = stopsRow.c;
+      const thisMonth = today.substring(0, 7);
+      completedRoutesThisMonth = (db.prepare("SELECT COUNT(*) as c FROM route_plans WHERE status='Completed' AND routeDate LIKE ?").get(`${thisMonth}%`) as { c: number }).c;
+      stopsCompletedThisMonth = (db.prepare("SELECT COUNT(*) as c FROM route_stops WHERE visitCompleted=1 AND DATE(visitCompletedAt) LIKE ?").get(`${thisMonth}%`) as { c: number }).c;
+    } catch { /* route tables may not exist yet */ }
+
     return NextResponse.json({
       totalLeads, newLeads, contactedLeads, interestedLeads, demoSentLeads,
       followUpDueToday, wonDeals, lostDeals, monthlyEstimatedValue: monthlyVal,
       hotLeads, recentActivity, upcomingFollowUps,
+      routesToday, stopsToday, completedRoutesThisMonth, stopsCompletedThisMonth,
     });
   } catch (err) {
     console.error(err);

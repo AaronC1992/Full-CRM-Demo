@@ -7,7 +7,7 @@ import { formatDate, formatDateTime, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import {
   Users, TrendingUp, Star, AlertCircle, CheckCircle2,
-  XCircle, PhoneCall, Send, Calendar, DollarSign, Flame, Clock
+  XCircle, PhoneCall, Send, Calendar, DollarSign, Flame, Clock, MapPin, Navigation
 } from 'lucide-react';
 
 function StatCard({ label, value, icon: Icon, color, sub }: {
@@ -79,6 +79,31 @@ export default function DashboardPage() {
           <StatCard label="Won Deals" value={stats.wonDeals} icon={CheckCircle2} color="bg-green-500" />
           <StatCard label="Lost Deals" value={stats.lostDeals} icon={XCircle} color="bg-red-400" />
         </div>
+
+        {/* Route Stats */}
+        {((stats.routesToday ?? 0) > 0 || (stats.completedRoutesThisMonth ?? 0) > 0 || (stats.stopsCompletedThisMonth ?? 0) > 0) && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <MapPin size={16} className="text-blue-500" />
+              <h3 className="font-semibold text-gray-800 text-sm">Route Activity</h3>
+              <Link href="/routes" className="ml-auto text-xs text-blue-600 hover:underline font-medium">Route Builder →</Link>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-800">{stats.routesToday ?? 0}</p>
+                <p className="text-xs text-gray-500">Routes today</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-800">{stats.stopsCompletedThisMonth ?? 0}</p>
+                <p className="text-xs text-gray-500">Visits this month</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-800">{stats.completedRoutesThisMonth ?? 0}</p>
+                <p className="text-xs text-gray-500">Routes completed</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Monthly value */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 text-white">

@@ -147,7 +147,95 @@ function initializeSchema() {
       key TEXT PRIMARY KEY,
       value TEXT DEFAULT ''
     );
+
+    CREATE TABLE IF NOT EXISTS route_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT DEFAULT '',
+      routeDate TEXT DEFAULT '',
+      startAddress TEXT DEFAULT '',
+      endAddress TEXT DEFAULT '',
+      city TEXT DEFAULT '',
+      state TEXT DEFAULT 'MO',
+      radiusMiles REAL,
+      startTime TEXT DEFAULT '',
+      endTime TEXT DEFAULT '',
+      status TEXT DEFAULT 'Draft',
+      totalStops INTEGER DEFAULT 0,
+      estimatedDriveTime TEXT DEFAULT '',
+      estimatedRouteDistance TEXT DEFAULT '',
+      googleMapsUrl TEXT DEFAULT '',
+      appleMapsUrl TEXT DEFAULT '',
+      notes TEXT DEFAULT '',
+      aiSummary TEXT DEFAULT '',
+      routeGoal TEXT DEFAULT '',
+      createdAt TEXT DEFAULT (datetime('now', 'localtime')),
+      updatedAt TEXT DEFAULT (datetime('now', 'localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS route_stops (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      routePlanId INTEGER REFERENCES route_plans(id) ON DELETE CASCADE,
+      leadId INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+      businessName TEXT DEFAULT '',
+      contactName TEXT DEFAULT '',
+      phone TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      website TEXT DEFAULT '',
+      facebookPage TEXT DEFAULT '',
+      address TEXT DEFAULT '',
+      city TEXT DEFAULT '',
+      state TEXT DEFAULT '',
+      latitude REAL,
+      longitude REAL,
+      stopOrder INTEGER DEFAULT 0,
+      priority TEXT DEFAULT 'Warm',
+      leadStatus TEXT DEFAULT 'New',
+      industry TEXT DEFAULT '',
+      serviceOpportunity TEXT DEFAULT '',
+      suggestedOffer TEXT DEFAULT '',
+      estimatedDealValue REAL,
+      visitReason TEXT DEFAULT '',
+      talkingPoints TEXT DEFAULT '[]',
+      recommendedPitch TEXT DEFAULT '',
+      leaveBehindSuggestion TEXT DEFAULT '',
+      followUpAction TEXT DEFAULT '',
+      estimatedVisitMinutes INTEGER DEFAULT 15,
+      arrivalWindow TEXT DEFAULT '',
+      notes TEXT DEFAULT '',
+      visitOutcome TEXT DEFAULT '',
+      spokeTo TEXT DEFAULT '',
+      interestLevel TEXT DEFAULT '',
+      followUpDate TEXT DEFAULT '',
+      nextAction TEXT DEFAULT '',
+      visitCompleted INTEGER DEFAULT 0,
+      visitCompletedAt TEXT DEFAULT '',
+      skipped INTEGER DEFAULT 0,
+      skipReason TEXT DEFAULT '',
+      routeScore REAL,
+      createdAt TEXT DEFAULT (datetime('now', 'localtime')),
+      updatedAt TEXT DEFAULT (datetime('now', 'localtime'))
+    );
   `);
+
+  // Safe migration: add new lead columns if they don't exist yet
+  const newLeadCols = [
+    "ALTER TABLE leads ADD COLUMN latitude REAL",
+    "ALTER TABLE leads ADD COLUMN longitude REAL",
+    "ALTER TABLE leads ADD COLUMN placeId TEXT DEFAULT ''",
+    "ALTER TABLE leads ADD COLUMN routeEligible INTEGER DEFAULT 1",
+    "ALTER TABLE leads ADD COLUMN lastVisitedDate TEXT DEFAULT ''",
+    "ALTER TABLE leads ADD COLUMN nextVisitDate TEXT DEFAULT ''",
+    "ALTER TABLE leads ADD COLUMN inPersonVisitStatus TEXT DEFAULT 'Not visited'",
+    "ALTER TABLE leads ADD COLUMN visitNotes TEXT DEFAULT ''",
+    "ALTER TABLE leads ADD COLUMN doNotVisit INTEGER DEFAULT 0",
+    "ALTER TABLE leads ADD COLUMN preferredVisitTime TEXT DEFAULT ''",
+    "ALTER TABLE leads ADD COLUMN businessHours TEXT DEFAULT ''",
+    "ALTER TABLE leads ADD COLUMN routeScore REAL",
+    "ALTER TABLE leads ADD COLUMN routeNotes TEXT DEFAULT ''",
+  ];
+  for (const sql of newLeadCols) {
+    try { database.exec(sql); } catch { /* column already exists */ }
+  }
 
   seedDefaultData(database);
 }

@@ -4,13 +4,14 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, PlusCircle, Globe, Handshake,
   CheckSquare, FileDown, Settings, Package, Sparkles,
-  MessageSquare, X, BarChart3
+  MessageSquare, X, BarChart3, MapPin
 } from 'lucide-react';
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/leads', label: 'Leads', icon: Users },
   { href: '/leads/add', label: 'Add Lead', icon: PlusCircle },
+  { href: '/routes', label: 'Route Builder', icon: MapPin },
   { href: '/deals', label: 'Deals', icon: Handshake },
   { href: '/demos', label: 'Demo Tracker', icon: Globe },
   { href: '/tasks', label: 'Tasks & Follow Ups', icon: CheckSquare },

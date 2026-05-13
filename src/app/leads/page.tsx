@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import {
   Search, Filter, Plus, ExternalLink, ChevronUp, ChevronDown,
-  Phone, Globe, SlidersHorizontal, X, UserX
+  Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square
 } from 'lucide-react';
 
 function LeadsContent() {
@@ -24,6 +24,11 @@ function LeadsContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [sort, setSort] = useState('createdDate');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const toggleSelect = (id: number) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelectAll = () => setSelectedIds(prev => prev.size === leads.length ? new Set() : new Set(leads.map(l => l.id)));
+  const buildRouteUrl = `/routes?leads=${Array.from(selectedIds).join(',')}`;  
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -143,14 +148,23 @@ function LeadsContent() {
           </div>
         )}
 
-        {/* Count */}
-        <div className="flex items-center justify-between">
+        {/* Count + Route Builder */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm text-gray-500">
             {loading ? 'Loading...' : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
+            {selectedIds.size > 0 && <span className="ml-2 text-blue-600 font-medium">{selectedIds.size} selected</span>}
           </p>
-          <Link href="/api/export/leads" className="text-xs text-blue-600 hover:underline font-medium">
-            Export CSV
-          </Link>
+          <div className="flex items-center gap-2">
+            {selectedIds.size > 0 && (
+              <Link href={buildRouteUrl}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">
+                <Navigation size={13} />Build Route from Selected ({selectedIds.size})
+              </Link>
+            )}
+            <Link href="/api/export/leads" className="text-xs text-blue-600 hover:underline font-medium">
+              Export CSV
+            </Link>
+          </div>
         </div>
 
         {/* Table */}
@@ -159,6 +173,11 @@ function LeadsContent() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-4 py-3 w-8">
+                    <button onClick={toggleSelectAll} className="text-gray-400 hover:text-blue-600">
+                      {selectedIds.size === leads.length && leads.length > 0 ? <CheckSquare size={15} className="text-blue-600" /> : <Square size={15} />}
+                    </button>
+                  </th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide cursor-pointer hover:text-gray-800" onClick={() => handleSort('businessName')}>
                     <span className="flex items-center gap-1">Business <SortIcon col="businessName" /></span>
                   </th>
@@ -180,19 +199,20 @@ function LeadsContent() {
                     <span className="flex items-center gap-1">Follow Up <SortIcon col="nextFollowUpDate" /></span>
                   </th>
                   <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading && (
                   <tr>
-                    <td colSpan={9} className="text-center py-10 text-gray-400">
+                    <td colSpan={10} className="text-center py-10 text-gray-400">
                       <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
                     </td>
                   </tr>
                 )}
                 {!loading && leads.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-center py-12 text-gray-400">
+                    <td colSpan={10} className="text-center py-12 text-gray-400">
                       <UserX size={32} className="mx-auto mb-2 opacity-30" />
                       <p>No leads found.</p>
                       <Link href="/leads/add" className="text-blue-500 text-sm hover:underline mt-1 inline-block">
@@ -202,7 +222,12 @@ function LeadsContent() {
                   </tr>
                 )}
                 {leads.map(lead => (
-                  <tr key={lead.id} className="hover:bg-gray-50 transition-colors group">
+                  <tr key={lead.id} className={`hover:bg-gray-50 transition-colors group ${selectedIds.has(lead.id) ? 'bg-blue-50/50' : ''}`}>
+                    <td className="px-4 py-3">
+                      <button onClick={() => toggleSelect(lead.id)} className="text-gray-400 hover:text-blue-600">
+                        {selectedIds.has(lead.id) ? <CheckSquare size={15} className="text-blue-600" /> : <Square size={15} />}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -248,6 +273,15 @@ function LeadsContent() {
                         className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-blue-600 font-medium hover:underline flex items-center gap-1 whitespace-nowrap"
                       >
                         View <ExternalLink size={11} />
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/routes?leads=${lead.id}`}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-500 hover:text-blue-600 flex items-center gap-0.5 whitespace-nowrap"
+                        title="Add to route"
+                      >
+                        <Navigation size={11} />
                       </Link>
                     </td>
                   </tr>

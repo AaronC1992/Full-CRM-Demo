@@ -14,7 +14,7 @@ import {
 import {
   Phone, Mail, Globe, MapPin, Calendar, DollarSign,
   Edit3, Save, X, CheckCircle, Circle, PhoneCall, Send, Clipboard,
-  Clock, Tag, ArrowLeft, Trash2, Plus, ExternalLink, Copy, MessageSquare
+  Clock, Tag, ArrowLeft, Trash2, Plus, ExternalLink, Copy, MessageSquare, Navigation
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -314,6 +314,12 @@ export default function LeadDetailPage() {
             <ArrowLeft size={15} /> Leads
           </button>
           <div className="flex-1" />
+          {!editing && (
+            <Link href={`/routes?leads=${params.id}`}
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium hover:bg-blue-100">
+              <Navigation size={14} /> Add to Route
+            </Link>
+          )}
           {!editing ? (
             <>
               <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50">
