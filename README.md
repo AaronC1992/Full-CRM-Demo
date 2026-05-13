@@ -1,6 +1,6 @@
 # Cue CRM
 
-**[🔗 Live App](#)** ← _Replace `#` with your deployed URL_
+**[🔗 Live App](https://crm-ten-theta-26.vercel.app)**
 
 ---
 
