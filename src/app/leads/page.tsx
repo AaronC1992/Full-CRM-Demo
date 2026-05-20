@@ -1,14 +1,5 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
-
-const LEADS_CACHE_KEY = 'cuecrm_leads_cache';
-function getInitialLeads(): Lead[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const c = sessionStorage.getItem(LEADS_CACHE_KEY);
-    return c ? JSON.parse(c) : [];
-  } catch { return []; }
-}
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badge';
 import { Lead } from '@/lib/types';
@@ -16,10 +7,54 @@ import { formatDate, formatCurrency, LEAD_STATUSES, PRIORITIES, INDUSTRIES } fro
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import ColumnEditor, { ColDef, ColState, mergeColState } from '@/components/ui/ColumnEditor';
 import {
   Search, Plus, ExternalLink, ChevronUp, ChevronDown,
-  Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square, UserCheck
+  Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square, UserCheck, Columns2
 } from 'lucide-react';
+
+const LEADS_CACHE_KEY = 'cuecrm_leads_cache';
+const LEADS_COLS_KEY = 'cuecrm_leads_cols';
+
+const ALL_LEADS_COLS: ColDef[] = [
+  { key: 'contact', label: 'Contact' },
+  { key: 'address', label: 'Address', sortKey: 'address' },
+  { key: 'city', label: 'City', sortKey: 'city' },
+  { key: 'state', label: 'State', sortKey: 'state' },
+  { key: 'industry', label: 'Industry' },
+  { key: 'status', label: 'Status', sortKey: 'leadStatus' },
+  { key: 'priority', label: 'Priority', sortKey: 'priority' },
+  { key: 'value', label: 'Value', sortKey: 'estimatedDealValue' },
+  { key: 'followUp', label: 'Follow Up', sortKey: 'nextFollowUpDate' },
+];
+
+const DEFAULT_LEADS_COLS: ColState[] = [
+  { key: 'contact', visible: true },
+  { key: 'address', visible: false },
+  { key: 'city', visible: true },
+  { key: 'state', visible: false },
+  { key: 'industry', visible: true },
+  { key: 'status', visible: true },
+  { key: 'priority', visible: true },
+  { key: 'value', visible: true },
+  { key: 'followUp', visible: true },
+];
+
+function getInitialLeads(): Lead[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const c = sessionStorage.getItem(LEADS_CACHE_KEY);
+    return c ? JSON.parse(c) : [];
+  } catch { return []; }
+}
+
+function getInitialLeadsCols(): ColState[] {
+  if (typeof window === 'undefined') return DEFAULT_LEADS_COLS;
+  try {
+    const saved = localStorage.getItem(LEADS_COLS_KEY);
+    return saved ? mergeColState(JSON.parse(saved), DEFAULT_LEADS_COLS) : DEFAULT_LEADS_COLS;
+  } catch { return DEFAULT_LEADS_COLS; }
+}
 
 function LeadsContent() {
   const searchParams = useSearchParams();
@@ -28,6 +63,8 @@ function LeadsContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [colState, setColState] = useState<ColState[]>(getInitialLeadsCols);
+  const [showColEditor, setShowColEditor] = useState(false);
   const leadsRef = useRef<Lead[]>([]);
   leadsRef.current = leads;
   const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || '');
@@ -36,7 +73,10 @@ function LeadsContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [sort, setSort] = useState('createdDate');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // Save column state to localStorage
+  useEffect(() => {
+    try { localStorage.setItem(LEADS_COLS_KEY, JSON.stringify(colState)); } catch { /* ignore */ }
+  }, [colState]);
 
   // Debounce search input → fetch
   useEffect(() => {
@@ -118,6 +158,13 @@ function LeadsContent() {
                 <span className="bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">{activeFilters}</span>
               )}
             </button>
+            <button
+              onClick={() => setShowColEditor(true)}
+              className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors"
+            >
+              <Columns2 size={16} />
+              Columns
+            </button>
             <Link
               href="/leads/add"
               className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
@@ -127,6 +174,15 @@ function LeadsContent() {
             </Link>
           </div>
         </div>
+
+        {showColEditor && (
+          <ColumnEditor
+            allCols={ALL_LEADS_COLS}
+            colState={colState}
+            onChange={setColState}
+            onClose={() => setShowColEditor(false)}
+          />
+        )}
 
         {/* Filters panel */}
         {showFilters && (
@@ -200,134 +256,152 @@ function LeadsContent() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-4 py-3 w-8">
-                    <button onClick={toggleSelectAll} className="text-gray-400 hover:text-blue-600">
-                      {selectedIds.size === leads.length && leads.length > 0 ? <CheckSquare size={15} className="text-blue-600" /> : <Square size={15} />}
-                    </button>
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide cursor-pointer hover:text-gray-800" onClick={() => handleSort('businessName')}>
-                    <span className="flex items-center gap-1">Business <SortIcon col="businessName" /></span>
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide hidden sm:table-cell">Contact</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide cursor-pointer hover:text-gray-800 hidden md:table-cell" onClick={() => handleSort('city')}>
-                    <span className="flex items-center gap-1">City <SortIcon col="city" /></span>
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide hidden lg:table-cell">Industry</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide cursor-pointer hover:text-gray-800" onClick={() => handleSort('leadStatus')}>
-                    <span className="flex items-center gap-1">Status <SortIcon col="leadStatus" /></span>
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide cursor-pointer hover:text-gray-800 hidden sm:table-cell" onClick={() => handleSort('priority')}>
-                    <span className="flex items-center gap-1">Priority <SortIcon col="priority" /></span>
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide hidden xl:table-cell cursor-pointer" onClick={() => handleSort('estimatedDealValue')}>
-                    <span className="flex items-center gap-1">Value <SortIcon col="estimatedDealValue" /></span>
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide hidden lg:table-cell cursor-pointer" onClick={() => handleSort('nextFollowUpDate')}>
-                    <span className="flex items-center gap-1">Follow Up <SortIcon col="nextFollowUpDate" /></span>
-                  </th>
-                  <th className="px-4 py-3"></th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {loading && (
-                  <tr>
-                    <td colSpan={10} className="text-center py-10 text-gray-400">
-                      <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
-                    </td>
-                  </tr>
-                )}
-                {!loading && leads.length === 0 && (
-                  <tr>
-                    <td colSpan={10} className="text-center py-12 text-gray-400">
-                      <UserX size={32} className="mx-auto mb-2 opacity-30" />
-                      <p>No leads found.</p>
-                      <Link href="/leads/add" className="text-blue-500 text-sm hover:underline mt-1 inline-block">
-                        Add your first lead →
-                      </Link>
-                    </td>
-                  </tr>
-                )}
-                {leads.map(lead => (
-                  <tr key={lead.id} className={`hover:bg-gray-50 transition-colors group ${selectedIds.has(lead.id) ? 'bg-blue-50/50' : ''}`}>
-                    <td className="px-4 py-3">
-                      <button onClick={() => toggleSelect(lead.id)} className="text-gray-400 hover:text-blue-600">
-                        {selectedIds.has(lead.id) ? <CheckSquare size={15} className="text-blue-600" /> : <Square size={15} />}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                          <span className="text-blue-700 text-xs font-bold">{lead.businessName?.[0]?.toUpperCase()}</span>
-                        </div>
-                        <div>
-                          <Link href={`/leads/${lead.id}`} className="font-medium text-gray-800 hover:text-blue-600 block leading-tight">
-                            {lead.businessName}
-                          </Link>
-                          {lead.website && (
-                            <a href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-blue-500 flex items-center gap-0.5">
-                              <Globe size={10} /> site
-                            </a>
-                          )}
-                          {lead.notes && (
-                            <p className="text-xs text-gray-400 mt-0.5 max-w-[180px] truncate" title={lead.notes}>
-                              {lead.notes.length > 60 ? lead.notes.slice(0, 60) + '\u2026' : lead.notes}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      <p className="text-gray-700 text-xs">{lead.contactName || '—'}</p>
-                      {lead.phone && (
-                        <a href={`tel:${lead.phone}`} className="text-xs text-gray-400 hover:text-blue-500 flex items-center gap-0.5">
-                          <Phone size={10} /> {lead.phone}
-                        </a>
+              {(() => {
+                const visibleCols = ALL_LEADS_COLS.filter(c => colState.find(s => s.key === c.key)?.visible);
+                const colSpan = visibleCols.length + 4; // checkbox + business + 2 actions
+                return (
+                  <>
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100">
+                        <th className="px-4 py-3 w-8">
+                          <button onClick={toggleSelectAll} className="text-gray-400 hover:text-blue-600">
+                            {selectedIds.size === leads.length && leads.length > 0 ? <CheckSquare size={15} className="text-blue-600" /> : <Square size={15} />}
+                          </button>
+                        </th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide cursor-pointer hover:text-gray-800" onClick={() => handleSort('businessName')}>
+                          <span className="flex items-center gap-1">Business <SortIcon col="businessName" /></span>
+                        </th>
+                        {visibleCols.map(col => (
+                          <th
+                            key={col.key}
+                            className={`text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide whitespace-nowrap ${col.sortKey ? 'cursor-pointer hover:text-gray-800' : ''}`}
+                            onClick={col.sortKey ? () => handleSort(col.sortKey!) : undefined}
+                          >
+                            {col.sortKey ? (
+                              <span className="flex items-center gap-1">{col.label} <SortIcon col={col.sortKey} /></span>
+                            ) : col.label}
+                          </th>
+                        ))}
+                        <th className="px-4 py-3"></th>
+                        <th className="px-4 py-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {loading && (
+                        <tr>
+                          <td colSpan={colSpan} className="text-center py-10 text-gray-400">
+                            <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 hidden md:table-cell text-xs">{lead.city || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 hidden lg:table-cell text-xs">{lead.industry || '—'}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={lead.leadStatus} size="sm" />
-                      {lead.leadStatus === 'Won' && (
-                        <Link href="/customers" className="flex items-center gap-0.5 mt-1 text-xs text-green-600 hover:text-green-700 font-medium">
-                          <UserCheck size={10} /> Customer
-                        </Link>
+                      {!loading && leads.length === 0 && (
+                        <tr>
+                          <td colSpan={colSpan} className="text-center py-12 text-gray-400">
+                            <UserX size={32} className="mx-auto mb-2 opacity-30" />
+                            <p>No leads found.</p>
+                            <Link href="/leads/add" className="text-blue-500 text-sm hover:underline mt-1 inline-block">
+                              Add your first lead →
+                            </Link>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell"><PriorityBadge priority={lead.priority} size="sm" /></td>
-                    <td className="px-4 py-3 text-gray-600 hidden xl:table-cell text-xs font-medium">
-                      {lead.estimatedDealValue ? formatCurrency(lead.estimatedDealValue) : '—'}
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      {lead.nextFollowUpDate ? (
-                        <span className={`text-xs ${new Date(lead.nextFollowUpDate) < new Date() ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                          {formatDate(lead.nextFollowUpDate)}
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/leads/${lead.id}`}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-blue-600 font-medium hover:underline flex items-center gap-1 whitespace-nowrap"
-                      >
-                        View <ExternalLink size={11} />
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/routes?leads=${lead.id}`}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-500 hover:text-blue-600 flex items-center gap-0.5 whitespace-nowrap"
-                        title="Add to route"
-                      >
-                        <Navigation size={11} />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+                      {leads.map(lead => (
+                        <tr key={lead.id} className={`hover:bg-gray-50 transition-colors group ${selectedIds.has(lead.id) ? 'bg-blue-50/50' : ''}`}>
+                          <td className="px-4 py-3">
+                            <button onClick={() => toggleSelect(lead.id)} className="text-gray-400 hover:text-blue-600">
+                              {selectedIds.has(lead.id) ? <CheckSquare size={15} className="text-blue-600" /> : <Square size={15} />}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                <span className="text-blue-700 text-xs font-bold">{lead.businessName?.[0]?.toUpperCase()}</span>
+                              </div>
+                              <div>
+                                <Link href={`/leads/${lead.id}`} className="font-medium text-gray-800 hover:text-blue-600 block leading-tight">
+                                  {lead.businessName}
+                                </Link>
+                                {lead.website && (
+                                  <a href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-blue-500 flex items-center gap-0.5">
+                                    <Globe size={10} /> site
+                                  </a>
+                                )}
+                                {lead.notes && (
+                                  <p className="text-xs text-gray-400 mt-0.5 max-w-[180px] truncate" title={lead.notes}>
+                                    {lead.notes.length > 60 ? lead.notes.slice(0, 60) + '\u2026' : lead.notes}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          {visibleCols.map(col => {
+                            let cell: React.ReactNode = '—';
+                            if (col.key === 'contact') {
+                              cell = (
+                                <>
+                                  <p className="text-gray-700 text-xs">{lead.contactName || '—'}</p>
+                                  {lead.phone && (
+                                    <a href={`tel:${lead.phone}`} className="text-xs text-gray-400 hover:text-blue-500 flex items-center gap-0.5">
+                                      <Phone size={10} /> {lead.phone}
+                                    </a>
+                                  )}
+                                </>
+                              );
+                            } else if (col.key === 'address') {
+                              cell = <span className="text-gray-600 text-xs">{lead.address || '—'}</span>;
+                            } else if (col.key === 'city') {
+                              cell = <span className="text-gray-600 text-xs">{lead.city || '—'}</span>;
+                            } else if (col.key === 'state') {
+                              cell = <span className="text-gray-600 text-xs">{lead.state || '—'}</span>;
+                            } else if (col.key === 'industry') {
+                              cell = <span className="text-gray-600 text-xs">{lead.industry || '—'}</span>;
+                            } else if (col.key === 'status') {
+                              cell = (
+                                <>
+                                  <StatusBadge status={lead.leadStatus} size="sm" />
+                                  {lead.leadStatus === 'Won' && (
+                                    <Link href="/customers" className="flex items-center gap-0.5 mt-1 text-xs text-green-600 hover:text-green-700 font-medium">
+                                      <UserCheck size={10} /> Customer
+                                    </Link>
+                                  )}
+                                </>
+                              );
+                            } else if (col.key === 'priority') {
+                              cell = <PriorityBadge priority={lead.priority} size="sm" />;
+                            } else if (col.key === 'value') {
+                              cell = <span className="text-gray-600 text-xs font-medium">{lead.estimatedDealValue ? formatCurrency(lead.estimatedDealValue) : '—'}</span>;
+                            } else if (col.key === 'followUp') {
+                              cell = lead.nextFollowUpDate ? (
+                                <span className={`text-xs ${new Date(lead.nextFollowUpDate) < new Date() ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                                  {formatDate(lead.nextFollowUpDate)}
+                                </span>
+                              ) : '—';
+                            }
+                            return <td key={col.key} className="px-4 py-3">{cell}</td>;
+                          })}
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/leads/${lead.id}`}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-blue-600 font-medium hover:underline flex items-center gap-1 whitespace-nowrap"
+                            >
+                              View <ExternalLink size={11} />
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/routes?leads=${lead.id}`}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-500 hover:text-blue-600 flex items-center gap-0.5 whitespace-nowrap"
+                              title="Add to route"
+                            >
+                              <Navigation size={11} />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </>
+                );
+              })()}
             </table>
           </div>
         </div>

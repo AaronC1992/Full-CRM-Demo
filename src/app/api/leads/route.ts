@@ -25,8 +25,9 @@ export async function GET(req: NextRequest) {
     const dir = searchParams.get('dir') === 'asc' ? 'ASC' : 'DESC';
 
     const sortMap: Record<string, string> = {
-      businessName: 'business_name', contactName: 'contact_name', city: 'city',
-      leadStatus: 'lead_status', priority: 'priority',
+      businessName: 'business_name', contactName: 'contact_name',
+      address: 'address', city: 'city', state: 'state',
+      leadStatus: 'lead_status', priority: 'priority', industry: 'industry',
       estimatedDealValue: 'estimated_deal_value', createdDate: 'created_date',
       updatedDate: 'updated_date', nextFollowUpDate: 'next_follow_up_date',
       lastContactedDate: 'last_contacted_date',
