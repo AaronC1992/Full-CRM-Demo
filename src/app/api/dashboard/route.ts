@@ -50,7 +50,7 @@ export async function GET() {
       routesToday, stopsToday, completedRoutesThisMonth, stopsCompletedThisMonth,
     });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Failed to load dashboard' }, { status: 500 });
+    console.error('[dashboard]', err);
+    return NextResponse.json({ error: 'Failed to load dashboard', details: String(err) }, { status: 500 });
   }
 }

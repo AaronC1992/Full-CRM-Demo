@@ -34,7 +34,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetch('/api/dashboard')
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
       .then(data => { setStats(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
