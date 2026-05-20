@@ -10,41 +10,49 @@ function parseStop(row: Record<string, unknown>) {
   };
 }
 
-// POST /api/routes/[id]/stops — add a stop
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const routeId = Number(params.id);
     const s = await req.json();
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
-    const result = db.prepare(`
-      INSERT INTO route_stops
-        (routePlanId, leadId, businessName, contactName, phone, email, website,
-         facebookPage, address, city, state, latitude, longitude, stopOrder,
-         priority, leadStatus, industry, serviceOpportunity, suggestedOffer,
-         estimatedDealValue, visitReason, talkingPoints, recommendedPitch,
-         leaveBehindSuggestion, followUpAction, estimatedVisitMinutes,
-         arrivalWindow, notes, routeScore)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `).run(
-      routeId, s.leadId ?? null,
-      s.businessName ?? '', s.contactName ?? '', s.phone ?? '',
-      s.email ?? '', s.website ?? '', s.facebookPage ?? '',
-      s.address ?? '', s.city ?? '', s.state ?? '',
-      s.latitude ?? null, s.longitude ?? null, s.stopOrder ?? 0,
-      s.priority ?? 'Warm', s.leadStatus ?? 'New',
-      s.industry ?? '', s.serviceOpportunity ?? '', s.suggestedOffer ?? '',
-      s.estimatedDealValue ?? null, s.visitReason ?? '',
-      JSON.stringify(Array.isArray(s.talkingPoints) ? s.talkingPoints : []),
-      s.recommendedPitch ?? '', s.leaveBehindSuggestion ?? '',
-      s.followUpAction ?? '', s.estimatedVisitMinutes ?? 15,
-      s.arrivalWindow ?? '', s.notes ?? '', s.routeScore ?? null
-    );
-
-    // Update totalStops on route
-    db.prepare(`UPDATE route_plans SET totalStops=(SELECT COUNT(*) FROM route_stops WHERE routePlanId=?), updatedAt=datetime('now','localtime') WHERE id=?`).run(routeId, routeId);
-
-    const stop = db.prepare('SELECT * FROM route_stops WHERE id = ?').get(result.lastInsertRowid);
+    const stopData = {
+      routePlanId: routeId,
+      leadId: s.leadId ?? null,
+      businessName: s.businessName ?? '',
+      contactName: s.contactName ?? '',
+      phone: s.phone ?? '',
+      email: s.email ?? '',
+      website: s.website ?? '',
+      facebookPage: s.facebookPage ?? '',
+      address: s.address ?? '',
+      city: s.city ?? '',
+      state: s.state ?? '',
+      latitude: s.latitude ?? null,
+      longitude: s.longitude ?? null,
+      stopOrder: s.stopOrder ?? 0,
+      priority: s.priority ?? 'Warm',
+      leadStatus: s.leadStatus ?? 'New',
+      industry: s.industry ?? '',
+      serviceOpportunity: s.serviceOpportunity ?? '',
+      suggestedOffer: s.suggestedOffer ?? '',
+      estimatedDealValue: s.estimatedDealValue ?? null,
+      visitReason: s.visitReason ?? '',
+      talkingPoints: JSON.stringify(Array.isArray(s.talkingPoints) ? s.talkingPoints : []),
+      recommendedPitch: s.recommendedPitch ?? '',
+      leaveBehindSuggestion: s.leaveBehindSuggestion ?? '',
+      followUpAction: s.followUpAction ?? '',
+      estimatedVisitMinutes: s.estimatedVisitMinutes ?? 15,
+      arrivalWindow: s.arrivalWindow ?? '',
+      notes: s.notes ?? '',
+      routeScore: s.routeScore ?? null,
+      createdAt: ts,
+      updatedAt: ts,
+    };
+    const [{ id: stopId }] = await sql`INSERT INTO route_stops ${sql(stopData)} RETURNING id`;
+    await sql`UPDATE route_plans SET total_stops = (SELECT COUNT(*) FROM route_stops WHERE route_plan_id = ${routeId}), updated_at = ${ts} WHERE id = ${routeId}`;
+    const [stop] = await sql`SELECT * FROM route_stops WHERE id = ${stopId}`;
     return NextResponse.json(parseStop(stop as Record<string, unknown>), { status: 201 });
   } catch (err) {
     console.error(err);

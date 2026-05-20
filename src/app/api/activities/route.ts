@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/db';
 
-// GET /api/activities?leadId=X
 export async function GET(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const { searchParams } = new URL(req.url);
     const leadId = searchParams.get('leadId');
     let rows;
     if (leadId) {
-      rows = db.prepare('SELECT * FROM activities WHERE leadId = ? ORDER BY createdDate DESC').all(leadId);
+      rows = await sql`SELECT * FROM activities WHERE lead_id = ${leadId} ORDER BY created_date DESC`;
     } else {
-      rows = db.prepare('SELECT a.*, l.businessName FROM activities a LEFT JOIN leads l ON a.leadId = l.id ORDER BY a.createdDate DESC LIMIT 50').all();
+      rows = await sql`SELECT a.*, l.business_name FROM activities a LEFT JOIN leads l ON a.lead_id = l.id ORDER BY a.created_date DESC LIMIT 50`;
     }
     return NextResponse.json(rows);
   } catch (err) {
@@ -19,15 +18,15 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/activities
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const body = await req.json();
-    const result = db.prepare(
-      'INSERT INTO activities (leadId, type, description) VALUES (?, ?, ?)'
-    ).run(body.leadId, body.type || 'note', body.description || '');
-    const activity = db.prepare('SELECT * FROM activities WHERE id = ?').get(result.lastInsertRowid);
+    const [activity] = await sql`
+      INSERT INTO activities (lead_id, type, description)
+      VALUES (${body.leadId}, ${body.type || 'note'}, ${body.description || ''})
+      RETURNING *
+    `;
     return NextResponse.json(activity, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: 'Failed to add activity' }, { status: 500 });

@@ -3,16 +3,16 @@ import getDb from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status') || '';
-    const leadId = searchParams.get('leadId') || '';
-    let query = 'SELECT d.*, l.businessName as leadName FROM demos d LEFT JOIN leads l ON d.leadId = l.id WHERE 1=1';
-    const params: unknown[] = [];
-    if (status) { query += ' AND d.demoStatus = ?'; params.push(status); }
-    if (leadId) { query += ' AND d.leadId = ?'; params.push(leadId); }
-    query += ' ORDER BY d.createdDate DESC';
-    return NextResponse.json(db.prepare(query).all(...params));
+    const status = searchParams.get('status');
+    let demos;
+    if (status) {
+      demos = await sql`SELECT d.*, l.business_name as lead_name FROM demos d LEFT JOIN leads l ON d.lead_id = l.id WHERE d.demo_status = ${status} ORDER BY d.created_date DESC`;
+    } else {
+      demos = await sql`SELECT d.*, l.business_name as lead_name FROM demos d LEFT JOIN leads l ON d.lead_id = l.id ORDER BY d.created_date DESC`;
+    }
+    return NextResponse.json(demos);
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch demos' }, { status: 500 });
   }
@@ -20,20 +20,28 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
-    const b = await req.json();
-    const result = db.prepare(`
-      INSERT INTO demos (businessName, leadId, demoUrl, originalWebsiteUrl, demoStatus,
-        layoutOptionUsed, dateStarted, dateCompleted, dateSent, clientFeedback,
-        neededChanges, followUpDate, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      b.businessName || '', b.leadId ?? null, b.demoUrl || '', b.originalWebsiteUrl || '',
-      b.demoStatus || 'Idea', b.layoutOptionUsed || '', b.dateStarted || '',
-      b.dateCompleted || '', b.dateSent || '', b.clientFeedback || '',
-      b.neededChanges || '', b.followUpDate || '', b.notes || ''
-    );
-    const demo = db.prepare('SELECT d.*, l.businessName as leadName FROM demos d LEFT JOIN leads l ON d.leadId = l.id WHERE d.id = ?').get(result.lastInsertRowid);
+    const sql = getDb();
+    const body = await req.json();
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const data = {
+      businessName: body.businessName || '',
+      leadId: body.leadId ?? null,
+      demoUrl: body.demoUrl || '',
+      originalWebsiteUrl: body.originalWebsiteUrl || '',
+      demoStatus: body.demoStatus || 'Idea',
+      layoutOptionUsed: body.layoutOptionUsed || '',
+      dateStarted: body.dateStarted || '',
+      dateCompleted: body.dateCompleted || '',
+      dateSent: body.dateSent || '',
+      clientFeedback: body.clientFeedback || '',
+      neededChanges: body.neededChanges || '',
+      followUpDate: body.followUpDate || '',
+      notes: body.notes || '',
+      createdDate: ts,
+      updatedDate: ts,
+    };
+    const [{ id }] = await sql`INSERT INTO demos ${sql(data)} RETURNING id`;
+    const [demo] = await sql`SELECT d.*, l.business_name as lead_name FROM demos d LEFT JOIN leads l ON d.lead_id = l.id WHERE d.id = ${id}`;
     return NextResponse.json(demo, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: 'Failed to create demo' }, { status: 500 });

@@ -3,8 +3,8 @@ import getDb from '@/lib/db';
 
 export async function GET() {
   try {
-    const db = getDb();
-    const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[];
+    const sql = getDb();
+    const rows = await sql`SELECT key, value FROM settings` as { key: string; value: string }[];
     const settings: Record<string, string> = {};
     for (const { key, value } of rows) settings[key] = value;
     return NextResponse.json(settings);
@@ -15,16 +15,15 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const body = await req.json();
-    const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-    const updateMany = db.transaction((data: Record<string, string>) => {
-      for (const [key, value] of Object.entries(data)) {
-        upsert.run(key, String(value));
-      }
-    });
-    updateMany(body);
-    const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[];
+    for (const [key, value] of Object.entries(body)) {
+      await sql`
+        INSERT INTO settings (key, value) VALUES (${key}, ${String(value)})
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+      `;
+    }
+    const rows = await sql`SELECT key, value FROM settings` as { key: string; value: string }[];
     const settings: Record<string, string> = {};
     for (const { key, value } of rows) settings[key] = value;
     return NextResponse.json(settings);

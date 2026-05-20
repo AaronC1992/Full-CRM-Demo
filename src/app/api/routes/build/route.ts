@@ -2,57 +2,50 @@ import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/db';
 import OpenAI from 'openai';
 
-// POST /api/routes/build
-// Body: { config, filters, selectedLeadIds }
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error: 'OPENAI_API_KEY is not configured.' }, { status: 500 });
     }
 
-    const db = getDb();
+    const sql = getDb();
     const { config = {}, filters = {}, selectedLeadIds = [] } = await req.json();
 
-    // ── 1. Fetch leads ──────────────────────────────────────────────────────────
     let leads: Record<string, unknown>[] = [];
 
     if (selectedLeadIds.length > 0) {
-      const placeholders = selectedLeadIds.map(() => '?').join(',');
-      leads = db.prepare(`SELECT * FROM leads WHERE id IN (${placeholders}) AND doNotVisit != 1`).all(...selectedLeadIds) as Record<string, unknown>[];
+      leads = await sql`SELECT * FROM leads WHERE id = ANY(${sql.array(selectedLeadIds)}) AND do_not_visit != 1` as Record<string, unknown>[];
     } else {
-      let query = "SELECT * FROM leads WHERE doNotVisit != 1 AND routeEligible != 0";
-      const params: unknown[] = [];
-
-      if (filters.city) { query += " AND city LIKE ?"; params.push(`%${filters.city}%`); }
-      if (filters.state) { query += " AND state = ?"; params.push(filters.state); }
-      if (filters.status) { query += " AND leadStatus = ?"; params.push(filters.status); }
-      if (filters.priority) { query += " AND priority = ?"; params.push(filters.priority); }
-      if (filters.industry) { query += " AND industry = ?"; params.push(filters.industry); }
-      if (filters.serviceOpportunity) { query += " AND serviceOpportunity LIKE ?"; params.push(`%${filters.serviceOpportunity}%`); }
-      if (filters.hotOnly) { query += " AND priority IN ('Hot','Urgent')"; }
-      if (filters.followUpDue) {
-        const today = new Date().toISOString().split('T')[0];
-        query += " AND DATE(nextFollowUpDate) <= DATE(?) AND leadStatus NOT IN ('Won','Lost','Not a fit')";
-        params.push(today);
-      }
-      if (filters.noWebsite) { query += " AND (hasWebsite = 'No' OR website = '')"; }
-      if (filters.badWebsite) { query += " AND currentWebsiteQuality IN ('Outdated','Poor','Bad','Needs work')"; }
-      if (filters.customersOnly) { query += " AND leadStatus = 'Won'"; }
-
+      const today = new Date().toISOString().split('T')[0];
       const maxLeads = Math.min(Number(config.maxStops || 20) * 3, 60);
-      query += ` ORDER BY priority DESC, updatedDate DESC LIMIT ${maxLeads}`;
-      leads = db.prepare(query).all(...params) as Record<string, unknown>[];
+
+      leads = await sql`
+        SELECT * FROM leads
+        WHERE do_not_visit != 1
+          AND route_eligible != 0
+          ${filters.city ? sql`AND city ILIKE ${'%' + filters.city + '%'}` : sql``}
+          ${filters.state ? sql`AND state = ${filters.state}` : sql``}
+          ${filters.status ? sql`AND lead_status = ${filters.status}` : sql``}
+          ${filters.priority ? sql`AND priority = ${filters.priority}` : sql``}
+          ${filters.industry ? sql`AND industry = ${filters.industry}` : sql``}
+          ${filters.serviceOpportunity ? sql`AND service_opportunity ILIKE ${'%' + filters.serviceOpportunity + '%'}` : sql``}
+          ${filters.hotOnly ? sql`AND priority IN ('Hot','Urgent')` : sql``}
+          ${filters.followUpDue ? sql`AND next_follow_up_date != '' AND next_follow_up_date <= ${today} AND lead_status NOT IN ('Won','Lost','Not a fit')` : sql``}
+          ${filters.noWebsite ? sql`AND (has_website = 'No' OR website = '')` : sql``}
+          ${filters.badWebsite ? sql`AND current_website_quality IN ('Outdated','Poor','Bad','Needs work')` : sql``}
+          ${filters.customersOnly ? sql`AND lead_status = 'Won'` : sql``}
+        ORDER BY priority DESC, updated_date DESC
+        LIMIT ${maxLeads}
+      ` as Record<string, unknown>[];
     }
 
     if (leads.length === 0) {
       return NextResponse.json({ error: 'No matching leads found. Try adjusting your filters.' }, { status: 400 });
     }
 
-    // ── 2. Check for missing addresses ─────────────────────────────────────────
     const leadsWithAddress = leads.filter(l => l.address && (l.city || l.state));
     const leadsWithoutAddress = leads.filter(l => !l.address || (!l.city && !l.state));
 
-    // ── 3. Geocode leads missing lat/lng (if Google Maps API key available) ─────
     const geocoded: Record<number, { lat: number; lng: number; placeId: string }> = {};
     if (process.env.GOOGLE_MAPS_API_KEY) {
       const toGeocode = leadsWithAddress.filter(l => !l.latitude || !l.longitude).slice(0, 25);
@@ -66,8 +59,8 @@ export async function POST(req: NextRequest) {
             const { lat, lng } = data.results[0].geometry.location;
             const placeId = data.results[0].place_id || '';
             geocoded[lead.id as number] = { lat, lng, placeId };
-            db.prepare(`UPDATE leads SET latitude=?, longitude=?, placeId=?, updatedDate=datetime('now','localtime') WHERE id=?`)
-              .run(lat, lng, placeId, lead.id);
+            const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+            await sql`UPDATE leads SET latitude = ${lat}, longitude = ${lng}, place_id = ${placeId}, updated_date = ${ts} WHERE id = ${lead.id as number}`;
             lead.latitude = lat;
             lead.longitude = lng;
             lead.placeId = placeId;
@@ -76,7 +69,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 4. Send to OpenAI for scoring & route planning ─────────────────────────
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const leadsForAI = leadsWithAddress.slice(0, 30).map(l => ({
@@ -101,48 +93,9 @@ export async function POST(req: NextRequest) {
     const maxStops = Number(config.maxStops || 10);
     const routeGoal = config.routeGoal || 'Visit local businesses and introduce Cue Marketing Solutions services';
 
-    const systemPrompt = `You are a sales route planner for Cue Marketing Solutions, a digital marketing agency in Joplin, MO that sells websites, local SEO, social media management, and custom CRMs to small local businesses.
+    const systemPrompt = `You are a sales route planner for Cue Marketing Solutions, a digital marketing agency in Joplin, MO that sells websites, local SEO, social media management, and custom CRMs to small local businesses.\n\nAnalyze the provided leads and create an optimized visit plan. Return ONLY valid JSON — no markdown, no explanation.`;
 
-Analyze the provided leads and create an optimized visit plan. Return ONLY valid JSON — no markdown, no explanation.`;
-
-    const userPrompt = `Route goal: ${routeGoal}
-Max stops: ${maxStops}
-Start time: ${config.startTime || '9:00 AM'}
-End time: ${config.endTime || '5:00 PM'}
-Date: ${config.routeDate || 'today'}
-
-Leads to evaluate (${leadsForAI.length} total):
-${JSON.stringify(leadsForAI, null, 2)}
-
-Return a JSON object exactly matching this structure:
-{
-  "routeName": "string - descriptive name for this route",
-  "routeGoal": "string - refined route goal",
-  "summary": "string - 2-3 sentence summary of the route strategy",
-  "recommendedStops": [
-    {
-      "leadId": "string",
-      "businessName": "string",
-      "visitPriority": number (1 = highest),
-      "routeScore": number (0-100),
-      "visitReason": "string - why visit this business today",
-      "talkingPoints": ["string", "string"],
-      "recommendedPitch": "string - 1-2 sentence personalized pitch",
-      "suggestedOffer": "string - specific service/package to pitch",
-      "leaveBehindSuggestion": "string - what to leave at the door",
-      "followUpAction": "string - recommended next action",
-      "estimatedVisitMinutes": number,
-      "skipReason": ""
-    }
-  ],
-  "skippedLeads": [
-    { "leadId": "string", "businessName": "string", "reason": "string" }
-  ],
-  "routeStrategy": "string - overall approach for the day",
-  "followUpPlan": "string - summary of recommended follow-up actions after the route"
-}
-
-Only include the top ${maxStops} leads in recommendedStops. Move the rest to skippedLeads.`;
+    const userPrompt = `Route goal: ${routeGoal}\nMax stops: ${maxStops}\nStart time: ${config.startTime || '9:00 AM'}\nEnd time: ${config.endTime || '5:00 PM'}\nDate: ${config.routeDate || 'today'}\n\nLeads to evaluate (${leadsForAI.length} total):\n${JSON.stringify(leadsForAI, null, 2)}\n\nReturn a JSON object exactly matching this structure:\n{\n  "routeName": "string - descriptive name for this route",\n  "routeGoal": "string - refined route goal",\n  "summary": "string - 2-3 sentence summary of the route strategy",\n  "recommendedStops": [\n    {\n      "leadId": "string",\n      "businessName": "string",\n      "visitPriority": number (1 = highest),\n      "routeScore": number (0-100),\n      "visitReason": "string",\n      "talkingPoints": ["string"],\n      "recommendedPitch": "string",\n      "suggestedOffer": "string",\n      "leaveBehindSuggestion": "string",\n      "followUpAction": "string",\n      "estimatedVisitMinutes": number,\n      "skipReason": ""\n    }\n  ],\n  "skippedLeads": [\n    { "leadId": "string", "businessName": "string", "reason": "string" }\n  ],\n  "routeStrategy": "string",\n  "followUpPlan": "string"\n}\n\nOnly include the top ${maxStops} leads in recommendedStops. Move the rest to skippedLeads.`;
 
     const aiResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -163,7 +116,6 @@ Only include the top ${maxStops} leads in recommendedStops. Move the rest to ski
       return NextResponse.json({ error: 'AI returned an invalid response. Please try again.' }, { status: 500 });
     }
 
-    // ── 5. Merge AI plan with lead data ─────────────────────────────────────────
     const leadMap: Record<string, Record<string, unknown>> = {};
     for (const l of leadsWithAddress) leadMap[String(l.id)] = l;
 

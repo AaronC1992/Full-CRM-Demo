@@ -1,59 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/db';
 
-// POST /api/leads/bulk
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const body = await req.json();
     const leads = Array.isArray(body) ? body : body.leads;
-
     if (!Array.isArray(leads)) {
       return NextResponse.json({ error: 'Expected an array of leads' }, { status: 400 });
     }
-
-    const stmt = db.prepare(`
-      INSERT INTO leads (
-        businessName, contactName, phone, email, website, facebookPage, address, city, state,
-        industry, currentWebsiteQuality, hasWebsite, hasFacebookPage, googleBusinessProfile,
-        serviceOpportunity, suggestedOffer, estimatedDealValue, leadSource, leadStatus, priority,
-        lastContactedDate, nextFollowUpDate, notes, painPoints, personalizedPitch,
-        demoWebsiteUrl, crmDemoUrl, marketingPackageInterest, websitePackageInterest,
-        crmPackageInterest, tags
-      ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?
-      )
-    `);
-
-    const insertMany = db.transaction((items: Record<string, unknown>[]) => {
-      const results = [];
-      for (const lead of items) {
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const ids: number[] = [];
+    await sql.begin(async tx => {
+      for (const lead of leads as Record<string, unknown>[]) {
         const tags = Array.isArray(lead.tags) ? JSON.stringify(lead.tags) : (lead.tags || '[]');
-        const result = stmt.run(
-          lead.businessName || '', lead.contactName || '', lead.phone || '',
-          lead.email || '', lead.website || '', lead.facebookPage || '',
-          lead.address || '', lead.city || '', lead.state || 'MO',
-          lead.industry || '', lead.currentWebsiteQuality || '',
-          lead.hasWebsite || '', lead.hasFacebookPage || '', lead.googleBusinessProfile || '',
-          lead.serviceOpportunity || '', lead.suggestedOffer || '',
-          lead.estimatedDealValue ?? null, lead.leadSource || 'ChatGPT research',
-          lead.leadStatus || 'New', lead.priority || 'Warm',
-          lead.lastContactedDate || '', lead.nextFollowUpDate || '',
-          lead.notes || '', lead.painPoints || '', lead.personalizedPitch || '',
-          lead.demoWebsiteUrl || '', lead.crmDemoUrl || '',
-          lead.marketingPackageInterest || '', lead.websitePackageInterest || '',
-          lead.crmPackageInterest || '', tags
-        );
-        results.push(result.lastInsertRowid);
+        const data = {
+          businessName: lead.businessName || '',
+          contactName: lead.contactName || '',
+          phone: lead.phone || '',
+          email: lead.email || '',
+          website: lead.website || '',
+          facebookPage: lead.facebookPage || '',
+          address: lead.address || '',
+          city: lead.city || '',
+          state: lead.state || 'MO',
+          industry: lead.industry || '',
+          currentWebsiteQuality: lead.currentWebsiteQuality || '',
+          hasWebsite: lead.hasWebsite || '',
+          hasFacebookPage: lead.hasFacebookPage || '',
+          googleBusinessProfile: lead.googleBusinessProfile || '',
+          serviceOpportunity: lead.serviceOpportunity || '',
+          suggestedOffer: lead.suggestedOffer || '',
+          estimatedDealValue: lead.estimatedDealValue ?? null,
+          leadSource: lead.leadSource || 'ChatGPT research',
+          leadStatus: lead.leadStatus || 'New',
+          priority: lead.priority || 'Warm',
+          lastContactedDate: lead.lastContactedDate || '',
+          nextFollowUpDate: lead.nextFollowUpDate || '',
+          notes: lead.notes || '',
+          painPoints: lead.painPoints || '',
+          personalizedPitch: lead.personalizedPitch || '',
+          demoWebsiteUrl: lead.demoWebsiteUrl || '',
+          crmDemoUrl: lead.crmDemoUrl || '',
+          marketingPackageInterest: lead.marketingPackageInterest || '',
+          websitePackageInterest: lead.websitePackageInterest || '',
+          crmPackageInterest: lead.crmPackageInterest || '',
+          tags,
+          createdDate: ts,
+          updatedDate: ts,
+        };
+        const [{ id }] = await tx`INSERT INTO leads ${tx(data as unknown as Record<string, string | number | boolean | null>)} RETURNING id`;
+        ids.push(id as number);
       }
-      return results;
     });
-
-    const ids = insertMany(leads as Record<string, unknown>[]);
     return NextResponse.json({ imported: ids.length, ids }, { status: 201 });
   } catch (err) {
     console.error(err);

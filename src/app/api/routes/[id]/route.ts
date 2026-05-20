@@ -10,60 +10,59 @@ function parseStop(row: Record<string, unknown>) {
   };
 }
 
-// GET /api/routes/[id]
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const db = getDb();
-    const route = db.prepare('SELECT * FROM route_plans WHERE id = ?').get(Number(params.id));
+    const sql = getDb();
+    const [route] = await sql`SELECT * FROM route_plans WHERE id = ${Number(params.id)}`;
     if (!route) return NextResponse.json({ error: 'Route not found' }, { status: 404 });
-    const stops = (db.prepare('SELECT * FROM route_stops WHERE routePlanId = ? ORDER BY stopOrder ASC').all(Number(params.id)) as Record<string, unknown>[]).map(parseStop);
-    return NextResponse.json({ ...route, stops });
+    const stops = await sql`SELECT * FROM route_stops WHERE route_plan_id = ${Number(params.id)} ORDER BY stop_order ASC` as Record<string, unknown>[];
+    return NextResponse.json({ ...(route as Record<string, unknown>), stops: stops.map(parseStop) });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed to fetch route' }, { status: 500 });
   }
 }
 
-// PUT /api/routes/[id]
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const id = Number(params.id);
     const body = await req.json();
-    const {
-      name, routeDate, startAddress, endAddress, city, state, radiusMiles,
-      startTime, endTime, status, estimatedDriveTime, estimatedRouteDistance,
-      googleMapsUrl, appleMapsUrl, notes, aiSummary, routeGoal,
-    } = body;
-
-    db.prepare(`
-      UPDATE route_plans SET
-        name=?, routeDate=?, startAddress=?, endAddress=?, city=?, state=?,
-        radiusMiles=?, startTime=?, endTime=?, status=?,
-        estimatedDriveTime=?, estimatedRouteDistance=?,
-        googleMapsUrl=?, appleMapsUrl=?, notes=?, aiSummary=?, routeGoal=?,
-        updatedAt=datetime('now','localtime')
-      WHERE id=?
-    `).run(
-      name, routeDate, startAddress, endAddress, city, state, radiusMiles,
-      startTime, endTime, status, estimatedDriveTime, estimatedRouteDistance,
-      googleMapsUrl, appleMapsUrl, notes, aiSummary, routeGoal, id
-    );
-
-    const route = db.prepare('SELECT * FROM route_plans WHERE id = ?').get(id) as Record<string, unknown>;
-    const stops = (db.prepare('SELECT * FROM route_stops WHERE routePlanId = ? ORDER BY stopOrder ASC').all(id) as Record<string, unknown>[]).map(parseStop);
-    return NextResponse.json({ ...route, stops });
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const data = {
+      name: body.name,
+      routeDate: body.routeDate,
+      startAddress: body.startAddress,
+      endAddress: body.endAddress,
+      city: body.city,
+      state: body.state,
+      radiusMiles: body.radiusMiles,
+      startTime: body.startTime,
+      endTime: body.endTime,
+      status: body.status,
+      estimatedDriveTime: body.estimatedDriveTime,
+      estimatedRouteDistance: body.estimatedRouteDistance,
+      googleMapsUrl: body.googleMapsUrl,
+      appleMapsUrl: body.appleMapsUrl,
+      notes: body.notes,
+      aiSummary: body.aiSummary,
+      routeGoal: body.routeGoal,
+      updatedAt: ts,
+    };
+    await sql`UPDATE route_plans SET ${sql(data)} WHERE id = ${id}`;
+    const [route] = await sql`SELECT * FROM route_plans WHERE id = ${id}` as Record<string, unknown>[];
+    const stops = await sql`SELECT * FROM route_stops WHERE route_plan_id = ${id} ORDER BY stop_order ASC` as Record<string, unknown>[];
+    return NextResponse.json({ ...route, stops: stops.map(parseStop) });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed to update route' }, { status: 500 });
   }
 }
 
-// DELETE /api/routes/[id]
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const db = getDb();
-    db.prepare('DELETE FROM route_plans WHERE id = ?').run(Number(params.id));
+    const sql = getDb();
+    await sql`DELETE FROM route_plans WHERE id = ${Number(params.id)}`;
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);

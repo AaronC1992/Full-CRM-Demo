@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/db';
 
-// POST /api/routes/[id]/generate-followups
-// Generates follow-up tasks for all completed stops that have a nextAction and followUpDate
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const routeId = Number(params.id);
 
-    const stops = db.prepare(`
+    const stops = await sql`
       SELECT * FROM route_stops
-      WHERE routePlanId=? AND visitCompleted=1 AND followUpDate!='' AND nextAction!='' AND nextAction!='No action'
-    `).all(routeId) as Record<string, unknown>[];
+      WHERE route_plan_id = ${routeId}
+        AND visit_completed = 1
+        AND follow_up_date != ''
+        AND next_action != ''
+        AND next_action != 'No action'
+    ` as Record<string, unknown>[];
 
     const taskTypeMap: Record<string, string> = {
       'Call back': 'Call', 'Email': 'Email', 'Send demo': 'Send demo',
@@ -20,26 +22,23 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     };
 
     let created = 0;
-    const insertTask = db.prepare(`
-      INSERT INTO tasks (title, leadId, dueDate, taskType, priority, status, notes)
-      VALUES (?, ?, ?, ?, 'High', 'pending', ?)
-    `);
-
-    const createTasks = db.transaction(() => {
-      for (const stop of stops) {
-        if (!stop.leadId) continue;
-        const taskType = taskTypeMap[stop.nextAction as string] || 'Follow up';
-        insertTask.run(
-          `${stop.nextAction} — ${stop.businessName}`,
-          stop.leadId,
-          stop.followUpDate,
-          taskType,
-          `Route follow-up. ${stop.notes || ''}`
-        );
-        created++;
-      }
-    });
-    createTasks();
+    for (const stop of stops) {
+      if (!stop.leadId) continue;
+      const taskType = taskTypeMap[stop.nextAction as string] || 'Follow up';
+      await sql`
+        INSERT INTO tasks (title, lead_id, due_date, task_type, priority, status, notes)
+        VALUES (
+          ${`${stop.nextAction} - ${stop.businessName}`},
+          ${stop.leadId as number},
+          ${stop.followUpDate as string},
+          ${taskType},
+          'High',
+          'pending',
+          ${`Route follow-up. ${stop.notes || ''}`}
+        )
+      `;
+      created++;
+    }
 
     return NextResponse.json({ created });
   } catch (err) {

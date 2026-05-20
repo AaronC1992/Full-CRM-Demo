@@ -3,40 +3,45 @@ import getDb from '@/lib/db';
 
 export async function GET() {
   try {
-    const db = getDb();
+    const sql = getDb();
     const today = new Date().toISOString().split('T')[0];
 
-    const totalLeads = (db.prepare('SELECT COUNT(*) as c FROM leads').get() as { c: number }).c;
-    const newLeads = (db.prepare("SELECT COUNT(*) as c FROM leads WHERE leadStatus = 'New'").get() as { c: number }).c;
-    const contactedLeads = (db.prepare("SELECT COUNT(*) as c FROM leads WHERE leadStatus IN ('Contacted','No answer','Interested','Follow up needed','Meeting scheduled','Proposal sent')").get() as { c: number }).c;
-    const interestedLeads = (db.prepare("SELECT COUNT(*) as c FROM leads WHERE leadStatus = 'Interested'").get() as { c: number }).c;
-    const demoSentLeads = (db.prepare("SELECT COUNT(*) as c FROM leads WHERE leadStatus = 'Demo website sent'").get() as { c: number }).c;
-    const followUpDueToday = (db.prepare("SELECT COUNT(*) as c FROM leads WHERE DATE(nextFollowUpDate) <= DATE(?) AND leadStatus NOT IN ('Won','Lost','Not a fit')").get(today) as { c: number }).c;
-    const wonDeals = (db.prepare("SELECT COUNT(*) as c FROM leads WHERE leadStatus = 'Won'").get() as { c: number }).c;
-    const lostDeals = (db.prepare("SELECT COUNT(*) as c FROM leads WHERE leadStatus = 'Lost'").get() as { c: number }).c;
-    const monthlyVal = (db.prepare("SELECT COALESCE(SUM(estimatedDealValue), 0) as v FROM leads WHERE leadStatus NOT IN ('Lost','Not a fit') AND estimatedDealValue > 0").get() as { v: number }).v;
+    const [{ c: totalLeads }] = await sql`SELECT COUNT(*) as c FROM leads`;
+    const [{ c: newLeads }] = await sql`SELECT COUNT(*) as c FROM leads WHERE lead_status = 'New'`;
+    const [{ c: contactedLeads }] = await sql`SELECT COUNT(*) as c FROM leads WHERE lead_status IN ('Contacted','No answer','Interested','Follow up needed','Meeting scheduled','Proposal sent')`;
+    const [{ c: interestedLeads }] = await sql`SELECT COUNT(*) as c FROM leads WHERE lead_status = 'Interested'`;
+    const [{ c: demoSentLeads }] = await sql`SELECT COUNT(*) as c FROM leads WHERE lead_status = 'Demo website sent'`;
+    const [{ c: followUpDueToday }] = await sql`SELECT COUNT(*) as c FROM leads WHERE next_follow_up_date != '' AND next_follow_up_date <= ${today} AND lead_status NOT IN ('Won','Lost','Not a fit')`;
+    const [{ c: wonDeals }] = await sql`SELECT COUNT(*) as c FROM leads WHERE lead_status = 'Won'`;
+    const [{ c: lostDeals }] = await sql`SELECT COUNT(*) as c FROM leads WHERE lead_status = 'Lost'`;
+    const [{ v: monthlyVal }] = await sql`SELECT COALESCE(SUM(estimated_deal_value), 0) as v FROM leads WHERE lead_status NOT IN ('Lost','Not a fit') AND estimated_deal_value > 0`;
 
-    const hotLeads = db.prepare("SELECT * FROM leads WHERE priority IN ('Hot','Urgent') AND leadStatus NOT IN ('Won','Lost','Not a fit') ORDER BY priority DESC, updatedDate DESC LIMIT 5").all();
-    const recentActivity = db.prepare('SELECT a.*, l.businessName FROM activities a LEFT JOIN leads l ON a.leadId = l.id ORDER BY a.createdDate DESC LIMIT 10').all();
-    const upcomingFollowUps = db.prepare("SELECT * FROM leads WHERE nextFollowUpDate != '' AND DATE(nextFollowUpDate) >= DATE(?) AND leadStatus NOT IN ('Won','Lost','Not a fit') ORDER BY nextFollowUpDate ASC LIMIT 8").all(today);
+    const hotLeads = await sql`SELECT * FROM leads WHERE priority IN ('Hot','Urgent') AND lead_status NOT IN ('Won','Lost','Not a fit') ORDER BY priority DESC, updated_date DESC LIMIT 5`;
+    const recentActivity = await sql`SELECT a.*, l.business_name FROM activities a LEFT JOIN leads l ON a.lead_id = l.id ORDER BY a.created_date DESC LIMIT 10`;
+    const upcomingFollowUps = await sql`SELECT * FROM leads WHERE next_follow_up_date != '' AND next_follow_up_date >= ${today} AND lead_status NOT IN ('Won','Lost','Not a fit') ORDER BY next_follow_up_date ASC LIMIT 8`;
 
-    // Route stats
     let routesToday = 0;
     let stopsToday = 0;
     let completedRoutesThisMonth = 0;
     let stopsCompletedThisMonth = 0;
     try {
-      routesToday = (db.prepare("SELECT COUNT(*) as c FROM route_plans WHERE routeDate = ? AND status NOT IN ('Archived')").get(today) as { c: number }).c;
-      const stopsRow = db.prepare("SELECT COALESCE(SUM(totalStops),0) as c FROM route_plans WHERE routeDate = ?").get(today) as { c: number };
-      stopsToday = stopsRow.c;
+      const [rt] = await sql`SELECT COUNT(*) as c FROM route_plans WHERE route_date = ${today} AND status NOT IN ('Archived')`;
+      routesToday = Number(rt.c);
+      const [st] = await sql`SELECT COALESCE(SUM(total_stops),0) as c FROM route_plans WHERE route_date = ${today}`;
+      stopsToday = Number(st.c);
       const thisMonth = today.substring(0, 7);
-      completedRoutesThisMonth = (db.prepare("SELECT COUNT(*) as c FROM route_plans WHERE status='Completed' AND routeDate LIKE ?").get(`${thisMonth}%`) as { c: number }).c;
-      stopsCompletedThisMonth = (db.prepare("SELECT COUNT(*) as c FROM route_stops WHERE visitCompleted=1 AND DATE(visitCompletedAt) LIKE ?").get(`${thisMonth}%`) as { c: number }).c;
+      const [cr] = await sql`SELECT COUNT(*) as c FROM route_plans WHERE status = 'Completed' AND route_date LIKE ${`${thisMonth}%`}`;
+      completedRoutesThisMonth = Number(cr.c);
+      const [sc] = await sql`SELECT COUNT(*) as c FROM route_stops WHERE visit_completed = 1 AND visit_completed_at LIKE ${`${thisMonth}%`}`;
+      stopsCompletedThisMonth = Number(sc.c);
     } catch { /* route tables may not exist yet */ }
 
     return NextResponse.json({
-      totalLeads, newLeads, contactedLeads, interestedLeads, demoSentLeads,
-      followUpDueToday, wonDeals, lostDeals, monthlyEstimatedValue: monthlyVal,
+      totalLeads: Number(totalLeads), newLeads: Number(newLeads),
+      contactedLeads: Number(contactedLeads), interestedLeads: Number(interestedLeads),
+      demoSentLeads: Number(demoSentLeads), followUpDueToday: Number(followUpDueToday),
+      wonDeals: Number(wonDeals), lostDeals: Number(lostDeals),
+      monthlyEstimatedValue: Number(monthlyVal),
       hotLeads, recentActivity, upcomingFollowUps,
       routesToday, stopsToday, completedRoutesThisMonth, stopsCompletedThisMonth,
     });

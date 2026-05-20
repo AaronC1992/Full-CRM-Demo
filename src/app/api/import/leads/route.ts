@@ -1,81 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/db';
 
-// POST /api/import/leads  (accepts JSON array)
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const body = await req.json();
     const leads = Array.isArray(body) ? body : body.leads;
-
     if (!Array.isArray(leads)) {
       return NextResponse.json({ error: 'Expected an array of leads' }, { status: 400 });
     }
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    let imported = 0;
+    let skipped = 0;
+    const errors: string[] = [];
 
-    const stmt = db.prepare(`
-      INSERT INTO leads (
-        businessName, contactName, phone, email, website, facebookPage, address, city, state,
-        industry, currentWebsiteQuality, hasWebsite, hasFacebookPage, googleBusinessProfile,
-        serviceOpportunity, suggestedOffer, estimatedDealValue, leadSource, leadStatus, priority,
-        notes, painPoints, personalizedPitch, demoWebsiteUrl, crmDemoUrl,
-        marketingPackageInterest, websitePackageInterest, crmPackageInterest, tags
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const dupCheck = db.prepare(
-      'SELECT id FROM leads WHERE businessName=? AND (phone=? OR website=?)'
-    );
-
-    const insertMany = db.transaction((items: Record<string, unknown>[]) => {
-      let imported = 0;
-      let skipped = 0;
-      const errors: string[] = [];
-      for (let i = 0; i < items.length; i++) {
-        const lead = items[i];
-        if (!lead.businessName) {
-          errors.push(`Row ${i + 1}: Missing businessName`);
-          continue;
-        }
-        // Skip duplicates when phone or website matches
-        if (lead.phone || lead.website) {
-          const dup = dupCheck.get(
-            String(lead.businessName),
-            String(lead.phone || ''),
-            String(lead.website || '')
-          ) as { id: number } | undefined;
-          if (dup) { skipped++; continue; }
-        }
-        try {
-          const tags = Array.isArray(lead.tags)
-            ? JSON.stringify(lead.tags)
-            : typeof lead.tags === 'string' && lead.tags.startsWith('[')
-            ? lead.tags
-            : JSON.stringify(lead.tags ? String(lead.tags).split(';') : []);
-
-          stmt.run(
-            lead.businessName || '', lead.contactName || '', lead.phone || '',
-            lead.email || '', lead.website || '', lead.facebookPage || '',
-            lead.address || '', lead.city || '', lead.state || 'MO',
-            lead.industry || '', lead.currentWebsiteQuality || '',
-            lead.hasWebsite || '', lead.hasFacebookPage || '', lead.googleBusinessProfile || '',
-            lead.serviceOpportunity || '', lead.suggestedOffer || '',
-            lead.estimatedDealValue ?? null, lead.leadSource || 'Import',
-            lead.leadStatus || 'New', lead.priority || 'Warm',
-            lead.notes || '', lead.painPoints || '', lead.personalizedPitch || '',
-            lead.demoWebsiteUrl || '', lead.crmDemoUrl || '',
-            lead.marketingPackageInterest || '', lead.websitePackageInterest || '',
-            lead.crmPackageInterest || '', tags
-          );
-          imported++;
-        } catch (e) {
-          errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : 'Unknown error'}`);
-        }
+    for (let i = 0; i < leads.length; i++) {
+      const lead = leads[i] as Record<string, unknown>;
+      if (!lead.businessName) {
+        errors.push(`Row ${i + 1}: Missing businessName`);
+        continue;
       }
-      return { imported, skipped, errors };
-    });
+      const businessName = String(lead.businessName);
+      const phone = String(lead.phone || '');
+      const website = String(lead.website || '');
+      if (phone || website) {
+        const [dup] = await sql`SELECT id FROM leads WHERE business_name = ${businessName} AND (phone = ${phone} OR website = ${website})`;
+        if (dup) { skipped++; continue; }
+      }
+      try {
+        const tags = Array.isArray(lead.tags)
+          ? JSON.stringify(lead.tags)
+          : typeof lead.tags === 'string' && lead.tags.startsWith('[')
+          ? lead.tags
+          : JSON.stringify(lead.tags ? String(lead.tags).split(';') : []);
 
-    const result = insertMany(leads as Record<string, unknown>[]);
-    return NextResponse.json(result, { status: 201 });
+        const data = {
+          businessName,
+          contactName: lead.contactName || '',
+          phone,
+          email: lead.email || '',
+          website,
+          facebookPage: lead.facebookPage || '',
+          address: lead.address || '',
+          city: lead.city || '',
+          state: lead.state || 'MO',
+          industry: lead.industry || '',
+          currentWebsiteQuality: lead.currentWebsiteQuality || '',
+          hasWebsite: lead.hasWebsite || '',
+          hasFacebookPage: lead.hasFacebookPage || '',
+          googleBusinessProfile: lead.googleBusinessProfile || '',
+          serviceOpportunity: lead.serviceOpportunity || '',
+          suggestedOffer: lead.suggestedOffer || '',
+          estimatedDealValue: lead.estimatedDealValue ?? null,
+          leadSource: lead.leadSource || 'Import',
+          leadStatus: lead.leadStatus || 'New',
+          priority: lead.priority || 'Warm',
+          notes: lead.notes || '',
+          painPoints: lead.painPoints || '',
+          personalizedPitch: lead.personalizedPitch || '',
+          demoWebsiteUrl: lead.demoWebsiteUrl || '',
+          crmDemoUrl: lead.crmDemoUrl || '',
+          marketingPackageInterest: lead.marketingPackageInterest || '',
+          websitePackageInterest: lead.websitePackageInterest || '',
+          crmPackageInterest: lead.crmPackageInterest || '',
+          tags,
+          createdDate: ts,
+          updatedDate: ts,
+        };
+        await sql`INSERT INTO leads ${sql(data as unknown as Record<string, string | number | boolean | null>)}`;
+        imported++;
+      } catch (e) {
+        errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      }
+    }
+    return NextResponse.json({ imported, skipped, errors }, { status: 201 });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Import failed' }, { status: 500 });

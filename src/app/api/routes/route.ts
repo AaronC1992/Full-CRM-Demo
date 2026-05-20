@@ -10,17 +10,16 @@ function parseStop(row: Record<string, unknown>) {
   };
 }
 
-// GET /api/routes
 export async function GET() {
   try {
-    const db = getDb();
-    const routes = db.prepare(`
-      SELECT rp.*, COUNT(rs.id) as stopCount
+    const sql = getDb();
+    const routes = await sql`
+      SELECT rp.*, COUNT(rs.id) as stop_count
       FROM route_plans rp
-      LEFT JOIN route_stops rs ON rp.id = rs.routePlanId
+      LEFT JOIN route_stops rs ON rp.id = rs.route_plan_id
       GROUP BY rp.id
-      ORDER BY rp.createdAt DESC
-    `).all();
+      ORDER BY rp.created_at DESC
+    `;
     return NextResponse.json(routes);
   } catch (err) {
     console.error(err);
@@ -28,10 +27,9 @@ export async function GET() {
   }
 }
 
-// POST /api/routes — save a route plan with stops
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const body = await req.json();
     const {
       name = '', routeDate = '', startAddress = '', endAddress = '',
@@ -42,57 +40,60 @@ export async function POST(req: NextRequest) {
       notes = '', aiSummary = '', routeGoal = '',
       stops = [],
     } = body;
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
-    const result = db.prepare(`
-      INSERT INTO route_plans
-        (name, routeDate, startAddress, endAddress, city, state, radiusMiles,
-         startTime, endTime, status, totalStops, estimatedDriveTime,
-         estimatedRouteDistance, googleMapsUrl, appleMapsUrl, notes, aiSummary, routeGoal)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `).run(
+    const planData = {
       name, routeDate, startAddress, endAddress, city, state, radiusMiles,
-      startTime, endTime, status, stops.length, estimatedDriveTime,
-      estimatedRouteDistance, googleMapsUrl, appleMapsUrl, notes, aiSummary, routeGoal
-    );
-
-    const routeId = result.lastInsertRowid as number;
+      startTime, endTime, status, totalStops: stops.length,
+      estimatedDriveTime, estimatedRouteDistance,
+      googleMapsUrl, appleMapsUrl, notes, aiSummary, routeGoal,
+      createdAt: ts, updatedAt: ts,
+    };
+    const [{ id: routeId }] = await sql`INSERT INTO route_plans ${sql(planData)} RETURNING id`;
 
     if (stops.length > 0) {
-      const insertStop = db.prepare(`
-        INSERT INTO route_stops
-          (routePlanId, leadId, businessName, contactName, phone, email, website,
-           facebookPage, address, city, state, latitude, longitude, stopOrder,
-           priority, leadStatus, industry, serviceOpportunity, suggestedOffer,
-           estimatedDealValue, visitReason, talkingPoints, recommendedPitch,
-           leaveBehindSuggestion, followUpAction, estimatedVisitMinutes,
-           arrivalWindow, notes, routeScore)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-      `);
-      const insertMany = db.transaction((stopsArr: Record<string, unknown>[]) => {
-        for (const s of stopsArr) {
-          insertStop.run(
-            routeId, s.leadId ?? null,
-            s.businessName ?? '', s.contactName ?? '', s.phone ?? '',
-            s.email ?? '', s.website ?? '', s.facebookPage ?? '',
-            s.address ?? '', s.city ?? '', s.state ?? '',
-            s.latitude ?? null, s.longitude ?? null,
-            s.stopOrder ?? 0,
-            s.priority ?? 'Warm', s.leadStatus ?? 'New',
-            s.industry ?? '', s.serviceOpportunity ?? '',
-            s.suggestedOffer ?? '', s.estimatedDealValue ?? null,
-            s.visitReason ?? '',
-            JSON.stringify(Array.isArray(s.talkingPoints) ? s.talkingPoints : []),
-            s.recommendedPitch ?? '', s.leaveBehindSuggestion ?? '',
-            s.followUpAction ?? '', s.estimatedVisitMinutes ?? 15,
-            s.arrivalWindow ?? '', s.notes ?? '', s.routeScore ?? null
-          );
+      await sql.begin(async tx => {
+        for (const s of stops as Record<string, unknown>[]) {
+          const stopData = {
+            routePlanId: routeId,
+            leadId: s.leadId ?? null,
+            businessName: s.businessName ?? '',
+            contactName: s.contactName ?? '',
+            phone: s.phone ?? '',
+            email: s.email ?? '',
+            website: s.website ?? '',
+            facebookPage: s.facebookPage ?? '',
+            address: s.address ?? '',
+            city: s.city ?? '',
+            state: s.state ?? '',
+            latitude: s.latitude ?? null,
+            longitude: s.longitude ?? null,
+            stopOrder: s.stopOrder ?? 0,
+            priority: s.priority ?? 'Warm',
+            leadStatus: s.leadStatus ?? 'New',
+            industry: s.industry ?? '',
+            serviceOpportunity: s.serviceOpportunity ?? '',
+            suggestedOffer: s.suggestedOffer ?? '',
+            estimatedDealValue: s.estimatedDealValue ?? null,
+            visitReason: s.visitReason ?? '',
+            talkingPoints: JSON.stringify(Array.isArray(s.talkingPoints) ? s.talkingPoints : []),
+            recommendedPitch: s.recommendedPitch ?? '',
+            leaveBehindSuggestion: s.leaveBehindSuggestion ?? '',
+            followUpAction: s.followUpAction ?? '',
+            estimatedVisitMinutes: s.estimatedVisitMinutes ?? 15,
+            arrivalWindow: s.arrivalWindow ?? '',
+            notes: s.notes ?? '',
+            routeScore: s.routeScore ?? null,
+            createdAt: ts,
+            updatedAt: ts,
+          };
+          await tx`INSERT INTO route_stops ${tx(stopData as unknown as Record<string, string | number | boolean | null>)}`;
         }
       });
-      insertMany(stops);
     }
 
-    const created = db.prepare('SELECT * FROM route_plans WHERE id = ?').get(routeId) as Record<string, unknown>;
-    const savedStops = db.prepare('SELECT * FROM route_stops WHERE routePlanId = ? ORDER BY stopOrder ASC').all(routeId) as Record<string, unknown>[];
+    const [created] = await sql`SELECT * FROM route_plans WHERE id = ${routeId}` as Record<string, unknown>[];
+    const savedStops = await sql`SELECT * FROM route_stops WHERE route_plan_id = ${routeId} ORDER BY stop_order ASC` as Record<string, unknown>[];
     return NextResponse.json({ ...created, stops: savedStops.map(parseStop) }, { status: 201 });
   } catch (err) {
     console.error(err);

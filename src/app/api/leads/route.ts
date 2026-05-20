@@ -12,10 +12,9 @@ function parseLead(row: Record<string, unknown>): Lead {
   } as Lead;
 }
 
-// GET /api/leads
 export async function GET(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
@@ -25,79 +24,77 @@ export async function GET(req: NextRequest) {
     const sort = searchParams.get('sort') || 'createdDate';
     const dir = searchParams.get('dir') === 'asc' ? 'ASC' : 'DESC';
 
-    let query = 'SELECT * FROM leads WHERE 1=1';
-    const params: unknown[] = [];
+    const sortMap: Record<string, string> = {
+      businessName: 'business_name', contactName: 'contact_name', city: 'city',
+      leadStatus: 'lead_status', priority: 'priority',
+      estimatedDealValue: 'estimated_deal_value', createdDate: 'created_date',
+      updatedDate: 'updated_date', nextFollowUpDate: 'next_follow_up_date',
+      lastContactedDate: 'last_contacted_date',
+    };
+    const safeSort = sortMap[sort] || 'created_date';
 
-    if (search) {
-      query += ` AND (businessName LIKE ? OR contactName LIKE ? OR phone LIKE ? OR city LIKE ? OR industry LIKE ?)`;
-      const s = `%${search}%`;
-      params.push(s, s, s, s, s);
-    }
-    if (status) { query += ' AND leadStatus = ?'; params.push(status); }
-    if (priority) { query += ' AND priority = ?'; params.push(priority); }
-    if (city) { query += ' AND city LIKE ?'; params.push(`%${city}%`); }
-    if (industry) { query += ' AND industry = ?'; params.push(industry); }
-
-    const allowedSort = ['businessName','contactName','city','leadStatus','priority','estimatedDealValue','createdDate','updatedDate','nextFollowUpDate','lastContactedDate'];
-    const safeSort = allowedSort.includes(sort) ? sort : 'createdDate';
-    query += ` ORDER BY ${safeSort} ${dir}`;
-
-    const rows = db.prepare(query).all(...params) as Record<string, unknown>[];
-    return NextResponse.json(rows.map(parseLead));
+    const rows = await sql`
+      SELECT * FROM leads
+      WHERE 1=1
+      ${search ? sql`AND (business_name ILIKE ${`%${search}%`} OR contact_name ILIKE ${`%${search}%`} OR phone ILIKE ${`%${search}%`} OR city ILIKE ${`%${search}%`} OR industry ILIKE ${`%${search}%`})` : sql``}
+      ${status ? sql`AND lead_status = ${status}` : sql``}
+      ${priority ? sql`AND priority = ${priority}` : sql``}
+      ${city ? sql`AND city ILIKE ${`%${city}%`}` : sql``}
+      ${industry ? sql`AND industry = ${industry}` : sql``}
+      ORDER BY ${sql.unsafe(safeSort)} ${sql.unsafe(dir)}
+    `;
+    return NextResponse.json((rows as Record<string, unknown>[]).map(parseLead));
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
   }
 }
 
-// POST /api/leads
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
+    const sql = getDb();
     const body = await req.json();
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
     const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : (body.tags || '[]');
-
-    const stmt = db.prepare(`
-      INSERT INTO leads (
-        businessName, contactName, phone, email, website, facebookPage, address, city, state,
-        industry, currentWebsiteQuality, hasWebsite, hasFacebookPage, googleBusinessProfile,
-        serviceOpportunity, suggestedOffer, estimatedDealValue, leadSource, leadStatus, priority,
-        lastContactedDate, nextFollowUpDate, notes, painPoints, personalizedPitch,
-        demoWebsiteUrl, crmDemoUrl, marketingPackageInterest, websitePackageInterest,
-        crmPackageInterest, tags
-      ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?
-      )
-    `);
-
-    const result = stmt.run(
-      body.businessName || '', body.contactName || '', body.phone || '',
-      body.email || '', body.website || '', body.facebookPage || '',
-      body.address || '', body.city || '', body.state || 'MO',
-      body.industry || '', body.currentWebsiteQuality || '',
-      body.hasWebsite || '', body.hasFacebookPage || '', body.googleBusinessProfile || '',
-      body.serviceOpportunity || '', body.suggestedOffer || '',
-      body.estimatedDealValue ?? null, body.leadSource || '',
-      body.leadStatus || 'New', body.priority || 'Warm',
-      body.lastContactedDate || '', body.nextFollowUpDate || '',
-      body.notes || '', body.painPoints || '', body.personalizedPitch || '',
-      body.demoWebsiteUrl || '', body.crmDemoUrl || '',
-      body.marketingPackageInterest || '', body.websitePackageInterest || '',
-      body.crmPackageInterest || '', tags
-    );
-
-    const newLead = db.prepare('SELECT * FROM leads WHERE id = ?').get(result.lastInsertRowid) as Record<string, unknown>;
-
-    // Log activity
-    db.prepare('INSERT INTO activities (leadId, type, description) VALUES (?, ?, ?)').run(
-      result.lastInsertRowid, 'note', `Lead created via API`
-    );
-
-    return NextResponse.json(parseLead(newLead), { status: 201 });
+    const data = {
+      businessName: body.businessName || '',
+      contactName: body.contactName || '',
+      phone: body.phone || '',
+      email: body.email || '',
+      website: body.website || '',
+      facebookPage: body.facebookPage || '',
+      address: body.address || '',
+      city: body.city || '',
+      state: body.state || 'MO',
+      industry: body.industry || '',
+      currentWebsiteQuality: body.currentWebsiteQuality || '',
+      hasWebsite: body.hasWebsite || '',
+      hasFacebookPage: body.hasFacebookPage || '',
+      googleBusinessProfile: body.googleBusinessProfile || '',
+      serviceOpportunity: body.serviceOpportunity || '',
+      suggestedOffer: body.suggestedOffer || '',
+      estimatedDealValue: body.estimatedDealValue ?? null,
+      leadSource: body.leadSource || '',
+      leadStatus: body.leadStatus || 'New',
+      priority: body.priority || 'Warm',
+      lastContactedDate: body.lastContactedDate || '',
+      nextFollowUpDate: body.nextFollowUpDate || '',
+      notes: body.notes || '',
+      painPoints: body.painPoints || '',
+      personalizedPitch: body.personalizedPitch || '',
+      demoWebsiteUrl: body.demoWebsiteUrl || '',
+      crmDemoUrl: body.crmDemoUrl || '',
+      marketingPackageInterest: body.marketingPackageInterest || '',
+      websitePackageInterest: body.websitePackageInterest || '',
+      crmPackageInterest: body.crmPackageInterest || '',
+      tags,
+      createdDate: ts,
+      updatedDate: ts,
+    };
+    const [{ id }] = await sql`INSERT INTO leads ${sql(data)} RETURNING id`;
+    await sql`INSERT INTO activities (lead_id, type, description) VALUES (${id}, 'note', 'Lead created via API')`;
+    const [row] = await sql`SELECT * FROM leads WHERE id = ${id}`;
+    return NextResponse.json(parseLead(row as Record<string, unknown>), { status: 201 });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });

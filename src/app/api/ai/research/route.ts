@@ -18,38 +18,7 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = `You are a marketing research assistant for Cue Marketing Solutions, a digital marketing agency in Joplin, MO (service area: Joplin, Webb City, Carthage, Neosho, Carl Junction, Pittsburg MO). Return ONLY valid JSON arrays — no markdown, no explanation, no code fences.`;
 
-    const userPrompt = `Research ${count} local businesses in ${city}, MO in the ${industry} industry that would benefit from digital marketing services.
-
-Return a JSON array ONLY in this exact format:
-
-[{
-  "businessName": "",
-  "contactName": "",
-  "phone": "",
-  "email": "",
-  "website": "",
-  "facebookPage": "",
-  "address": "",
-  "city": "${city}",
-  "state": "MO",
-  "industry": "${industry}",
-  "currentWebsiteQuality": "",
-  "hasWebsite": "Yes or No",
-  "hasFacebookPage": "Yes or No",
-  "googleBusinessProfile": "Yes or No",
-  "serviceOpportunity": "",
-  "suggestedOffer": "",
-  "estimatedDealValue": 0,
-  "leadSource": "AI Research",
-  "leadStatus": "New",
-  "priority": "Warm",
-  "notes": "",
-  "painPoints": "",
-  "personalizedPitch": "",
-  "tags": []
-}]
-
-Focus on businesses with outdated/no website, low online presence. Estimated deal value $997–$5000.`;
+    const userPrompt = `Research ${count} local businesses in ${city}, MO in the ${industry} industry that would benefit from digital marketing services.\n\nReturn a JSON array ONLY in this exact format:\n\n[{\n  "businessName": "",\n  "contactName": "",\n  "phone": "",\n  "email": "",\n  "website": "",\n  "facebookPage": "",\n  "address": "",\n  "city": "${city}",\n  "state": "MO",\n  "industry": "${industry}",\n  "currentWebsiteQuality": "",\n  "hasWebsite": "Yes or No",\n  "hasFacebookPage": "Yes or No",\n  "googleBusinessProfile": "Yes or No",\n  "serviceOpportunity": "",\n  "suggestedOffer": "",\n  "estimatedDealValue": 0,\n  "leadSource": "AI Research",\n  "leadStatus": "New",\n  "priority": "Warm",\n  "notes": "",\n  "painPoints": "",\n  "personalizedPitch": "",\n  "tags": []\n}]\n\nFocus on businesses with outdated/no website, low online presence. Estimated deal value $997-$5000.`;
 
     const completion = await client.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -65,7 +34,6 @@ Focus on businesses with outdated/no website, low online presence. Estimated dea
 
     let leads: Record<string, unknown>[];
     try {
-      // Strip any accidental markdown fences
       const cleaned = raw.replace(/```json?/gi, '').replace(/```/g, '').trim();
       leads = JSON.parse(cleaned);
       if (!Array.isArray(leads)) throw new Error('Not an array');
@@ -73,40 +41,45 @@ Focus on businesses with outdated/no website, low online presence. Estimated dea
       return NextResponse.json({ error: 'AI returned unexpected format. Try again.', raw }, { status: 502 });
     }
 
-    // Save each lead to the database
-    const db = getDb();
-    const stmt = db.prepare(`
-      INSERT INTO leads (
-        businessName, contactName, phone, email, website, facebookPage, address, city, state,
-        industry, currentWebsiteQuality, hasWebsite, hasFacebookPage, googleBusinessProfile,
-        serviceOpportunity, suggestedOffer, estimatedDealValue, leadSource, leadStatus, priority,
-        notes, painPoints, personalizedPitch, tags
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    const sql = getDb();
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const today = new Date().toISOString().split('T')[0];
 
-    const insertMany = db.transaction((rows: Record<string, unknown>[]) => {
-      const ids: number[] = [];
-      for (const l of rows) {
-        const result = stmt.run(
-          l.businessName || '', l.contactName || '', l.phone || '',
-          l.email || '', l.website || '', l.facebookPage || '',
-          l.address || '', l.city || city, l.state || 'MO',
-          l.industry || industry, l.currentWebsiteQuality || '',
-          l.hasWebsite || '', l.hasFacebookPage || '', l.googleBusinessProfile || '',
-          l.serviceOpportunity || '', l.suggestedOffer || '',
-          typeof l.estimatedDealValue === 'number' ? l.estimatedDealValue : null,
-          'AI Research', l.leadStatus || 'New', l.priority || 'Warm',
-          l.notes || '', l.painPoints || '', l.personalizedPitch || '',
-          JSON.stringify(Array.isArray(l.tags) ? l.tags : [])
-        );
-        ids.push(Number(result.lastInsertRowid));
-      }
-      return ids;
-    });
+    const insertedIds: number[] = [];
+    for (const l of leads) {
+      const leadData = {
+        businessName: l.businessName || '',
+        contactName: l.contactName || '',
+        phone: l.phone || '',
+        email: l.email || '',
+        website: l.website || '',
+        facebookPage: l.facebookPage || '',
+        address: l.address || '',
+        city: l.city || city,
+        state: l.state || 'MO',
+        industry: l.industry || industry,
+        currentWebsiteQuality: l.currentWebsiteQuality || '',
+        hasWebsite: l.hasWebsite || '',
+        hasFacebookPage: l.hasFacebookPage || '',
+        googleBusinessProfile: l.googleBusinessProfile || '',
+        serviceOpportunity: l.serviceOpportunity || '',
+        suggestedOffer: l.suggestedOffer || '',
+        estimatedDealValue: typeof l.estimatedDealValue === 'number' ? l.estimatedDealValue : null,
+        leadSource: 'AI Research',
+        leadStatus: l.leadStatus || 'New',
+        priority: l.priority || 'Warm',
+        notes: l.notes || '',
+        painPoints: l.painPoints || '',
+        personalizedPitch: l.personalizedPitch || '',
+        tags: JSON.stringify(Array.isArray(l.tags) ? l.tags : []),
+        createdDate: today,
+        updatedDate: ts,
+      };
+      const [{ id }] = await sql`INSERT INTO leads ${sql(leadData as unknown as Record<string, string | number | boolean | null>)} RETURNING id`;
+      insertedIds.push(id as number);
+    }
 
-    const insertedIds = insertMany(leads);
     const leadsWithIds = leads.map((l, i) => ({ ...l, id: insertedIds[i] }));
-
     return NextResponse.json({ count: leadsWithIds.length, leads: leadsWithIds });
   } catch (err) {
     console.error('[ai/research]', err);
