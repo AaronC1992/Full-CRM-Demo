@@ -9,7 +9,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import {
   Search, Plus, ExternalLink, ChevronUp, ChevronDown,
-  Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square
+  Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square, UserCheck
 } from 'lucide-react';
 
 function LeadsContent() {
@@ -259,7 +259,14 @@ function LeadsContent() {
                     </td>
                     <td className="px-4 py-3 text-gray-600 hidden md:table-cell text-xs">{lead.city || '—'}</td>
                     <td className="px-4 py-3 text-gray-600 hidden lg:table-cell text-xs">{lead.industry || '—'}</td>
-                    <td className="px-4 py-3"><StatusBadge status={lead.leadStatus} size="sm" /></td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={lead.leadStatus} size="sm" />
+                      {lead.leadStatus === 'Won' && (
+                        <Link href="/customers" className="flex items-center gap-0.5 mt-1 text-xs text-green-600 hover:text-green-700 font-medium">
+                          <UserCheck size={10} /> Customer
+                        </Link>
+                      )}
+                    </td>
                     <td className="px-4 py-3 hidden sm:table-cell"><PriorityBadge priority={lead.priority} size="sm" /></td>
                     <td className="px-4 py-3 text-gray-600 hidden xl:table-cell text-xs font-medium">
                       {lead.estimatedDealValue ? formatCurrency(lead.estimatedDealValue) : '—'}
