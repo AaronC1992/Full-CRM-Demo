@@ -106,12 +106,25 @@ export default function DashboardPage() {
         )}
 
         {/* Monthly value */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 text-white">
-          <div className="flex items-center gap-3">
-            <DollarSign size={24} className="opacity-80" />
-            <div>
-              <p className="text-blue-100 text-sm font-medium">Pipeline Value (Active Leads)</p>
-              <p className="text-3xl font-bold">{formatCurrency(stats.monthlyEstimatedValue)}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 text-white">
+            <div className="flex items-center gap-3">
+              <DollarSign size={22} className="opacity-80 shrink-0" />
+              <div>
+                <p className="text-blue-100 text-sm font-medium">Pipeline This Month</p>
+                <p className="text-3xl font-bold">{formatCurrency(stats.monthlyEstimatedValue)}</p>
+                <p className="text-blue-200 text-xs mt-0.5">New leads added this month</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-5 text-white">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 size={22} className="opacity-80 shrink-0" />
+              <div>
+                <p className="text-green-100 text-sm font-medium">Won This Month</p>
+                <p className="text-3xl font-bold">{formatCurrency(stats.wonThisMonthValue)}</p>
+                <p className="text-green-200 text-xs mt-0.5">Closed deals this month</p>
+              </div>
             </div>
           </div>
         </div>

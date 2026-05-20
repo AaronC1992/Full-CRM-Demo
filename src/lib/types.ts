@@ -269,6 +269,7 @@ export interface DashboardStats {
   wonDeals: number;
   lostDeals: number;
   monthlyEstimatedValue: number;
+  wonThisMonthValue: number;
   hotLeads: Lead[];
   recentActivity: Activity[];
   upcomingFollowUps: Lead[];
