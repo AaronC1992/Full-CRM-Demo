@@ -7,7 +7,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const [template] = await sql`SELECT * FROM templates WHERE id = ${params.id}`;
     if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     return NextResponse.json(template);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch template' }, { status: 500 });
   }
 }
@@ -26,7 +26,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const [template] = await sql`UPDATE templates SET ${sql(data)} WHERE id = ${params.id} RETURNING *`;
     if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     return NextResponse.json(template);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update template' }, { status: 500 });
   }
 }
@@ -36,7 +36,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     const sql = getDb();
     await sql`DELETE FROM templates WHERE id = ${params.id}`;
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to delete template' }, { status: 500 });
   }
 }

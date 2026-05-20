@@ -8,7 +8,7 @@ export async function GET() {
     const settings: Record<string, string> = {};
     for (const { key, value } of rows) settings[key] = value;
     return NextResponse.json(settings);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
   }
 }
@@ -27,7 +27,7 @@ export async function PUT(req: NextRequest) {
     const settings: Record<string, string> = {};
     for (const { key, value } of rows) settings[key] = value;
     return NextResponse.json(settings);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
 }

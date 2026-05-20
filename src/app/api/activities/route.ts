@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`SELECT a.*, l.business_name FROM activities a LEFT JOIN leads l ON a.lead_id = l.id ORDER BY a.created_date DESC LIMIT 50`;
     }
     return NextResponse.json(rows);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch activities' }, { status: 500 });
   }
 }
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       RETURNING *
     `;
     return NextResponse.json(activity, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to add activity' }, { status: 500 });
   }
 }

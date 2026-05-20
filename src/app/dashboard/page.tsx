@@ -7,7 +7,7 @@ import { formatDate, formatDateTime, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import {
   Users, TrendingUp, Star, AlertCircle, CheckCircle2,
-  XCircle, PhoneCall, Send, Calendar, DollarSign, Flame, Clock, MapPin, Navigation
+  XCircle, PhoneCall, Send, Calendar, DollarSign, Flame, Clock, MapPin
 } from 'lucide-react';
 
 function StatCard({ label, value, icon: Icon, color, sub }: {

@@ -13,7 +13,7 @@ import {
 } from '@/lib/utils';
 import {
   Phone, Mail, Globe, MapPin, Calendar, DollarSign,
-  Edit3, Save, X, CheckCircle, Circle, PhoneCall, Send, Clipboard,
+  Edit3, Save, X, CheckCircle, Circle, PhoneCall, Send,
   Clock, Tag, ArrowLeft, Trash2, Plus, ExternalLink, Copy, MessageSquare, Navigation
 } from 'lucide-react';
 import Link from 'next/link';

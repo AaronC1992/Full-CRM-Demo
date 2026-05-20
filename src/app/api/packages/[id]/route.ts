@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     if (!pkg) return NextResponse.json({ error: 'Package not found' }, { status: 404 });
     const result = { ...(pkg as Record<string, unknown>), includedFeatures: (() => { try { return JSON.parse((pkg as Record<string, unknown>).includedFeatures as string); } catch { return []; } })() };
     return NextResponse.json(result);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch package' }, { status: 500 });
   }
 }
@@ -32,7 +32,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (!pkg) return NextResponse.json({ error: 'Package not found' }, { status: 404 });
     const result = { ...(pkg as Record<string, unknown>), includedFeatures: (() => { try { return JSON.parse((pkg as Record<string, unknown>).includedFeatures as string); } catch { return []; } })() };
     return NextResponse.json(result);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update package' }, { status: 500 });
   }
 }
@@ -42,7 +42,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     const sql = getDb();
     await sql`DELETE FROM packages WHERE id = ${params.id}`;
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to delete package' }, { status: 500 });
   }
 }

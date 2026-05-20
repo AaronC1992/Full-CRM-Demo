@@ -6,7 +6,7 @@ export async function GET() {
     const sql = getDb();
     const templates = await sql`SELECT * FROM templates ORDER BY name ASC`;
     return NextResponse.json(templates);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch templates' }, { status: 500 });
   }
 }
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     };
     const [template] = await sql`INSERT INTO templates ${sql(data)} RETURNING *`;
     return NextResponse.json(template, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create template' }, { status: 500 });
   }
 }

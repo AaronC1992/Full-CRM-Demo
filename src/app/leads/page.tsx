@@ -2,18 +2,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badge';
-import { Lead, LeadStatus, Priority } from '@/lib/types';
+import { Lead } from '@/lib/types';
 import { formatDate, formatCurrency, LEAD_STATUSES, PRIORITIES, INDUSTRIES } from '@/lib/utils';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import {
-  Search, Filter, Plus, ExternalLink, ChevronUp, ChevronDown,
+  Search, Plus, ExternalLink, ChevronUp, ChevronDown,
   Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square
 } from 'lucide-react';
 
 function LeadsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +25,7 @@ function LeadsContent() {
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  const toggleSelect = (id: number) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelect = (id: number) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const toggleSelectAll = () => setSelectedIds(prev => prev.size === leads.length ? new Set() : new Set(leads.map(l => l.id)));
   const buildRouteUrl = `/routes?leads=${Array.from(selectedIds).join(',')}`;  
 

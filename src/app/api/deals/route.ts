@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       deals = await sql`SELECT d.*, l.business_name as lead_name FROM deals d LEFT JOIN leads l ON d.lead_id = l.id ORDER BY d.created_date DESC`;
     }
     return NextResponse.json(deals);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch deals' }, { status: 500 });
   }
 }
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const [{ id }] = await sql`INSERT INTO deals ${sql(data)} RETURNING id`;
     const [deal] = await sql`SELECT d.*, l.business_name as lead_name FROM deals d LEFT JOIN leads l ON d.lead_id = l.id WHERE d.id = ${id}`;
     return NextResponse.json(deal, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create deal' }, { status: 500 });
   }
 }

@@ -67,7 +67,6 @@ export default function ImportExportPage() {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const csvFileRef = useRef<HTMLInputElement>(null);
 
   const importJson = async () => {
     if (!jsonText.trim()) { showToast('Paste JSON first.', 'error'); return; }

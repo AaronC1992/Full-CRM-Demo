@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       demos = await sql`SELECT d.*, l.business_name as lead_name FROM demos d LEFT JOIN leads l ON d.lead_id = l.id ORDER BY d.created_date DESC`;
     }
     return NextResponse.json(demos);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch demos' }, { status: 500 });
   }
 }
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const [{ id }] = await sql`INSERT INTO demos ${sql(data)} RETURNING id`;
     const [demo] = await sql`SELECT d.*, l.business_name as lead_name FROM demos d LEFT JOIN leads l ON d.lead_id = l.id WHERE d.id = ${id}`;
     return NextResponse.json(demo, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create demo' }, { status: 500 });
   }
 }

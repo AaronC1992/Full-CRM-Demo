@@ -10,9 +10,9 @@ import { LEAD_STATUSES, PRIORITIES, INDUSTRIES, SERVICE_OPPORTUNITIES } from '@/
 import {
   MapPin, Navigation, Sparkles, Route, Clock, Filter, Search,
   CheckSquare, Square, RefreshCw, Phone, Globe, AlertTriangle,
-  ChevronDown, ChevronUp, Copy, Download, ExternalLink, Map,
-  CheckCircle2, XCircle, Play, Save, Trash2, SkipForward,
-  AlertCircle, Plus, Calendar, Star, Flame, Zap, RotateCcw,
+  ChevronDown, ChevronUp, Copy, Download, Map,
+  CheckCircle2, XCircle, Save, Trash2, SkipForward,
+  Plus, Calendar, Star, Flame, Zap, RotateCcw,
   ArrowUpDown, List, Eye, Edit3
 } from 'lucide-react';
 import Link from 'next/link';
@@ -22,8 +22,6 @@ import Link from 'next/link';
 const TRAVEL_MODES = ['Driving', 'Walking', 'Bicycling'];
 const VISIT_INTEREST_LEVELS = ['Not interested', 'Low', 'Medium', 'High', 'Very hot'];
 const VISIT_NEXT_ACTIONS = ['Call back', 'Email', 'Send demo', 'Build demo website', 'Send proposal', 'Schedule meeting', 'No action'];
-const IN_PERSON_STATUSES = ['Not visited', 'Planned', 'Visited', 'No one available', 'Spoke with owner', 'Spoke with employee', 'Left card', 'Asked to follow up', 'Not interested', 'Follow up scheduled', 'Converted'];
-
 const inp = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
 const label = 'text-xs text-gray-500 mb-1 block font-medium';
 
@@ -482,7 +480,7 @@ function RouteBuilderContent() {
     !leadSearch || l.businessName.toLowerCase().includes(leadSearch.toLowerCase()) || l.city?.toLowerCase().includes(leadSearch.toLowerCase())
   );
 
-  const toggleSelect = (id: number) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelect = (id: number) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const selectAll = () => setSelectedIds(new Set(filteredLeads.map(l => l.id)));
   const clearSelection = () => setSelectedIds(new Set());
 

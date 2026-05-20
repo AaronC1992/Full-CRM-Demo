@@ -10,7 +10,7 @@ export async function GET() {
       includedFeatures: (() => { try { return JSON.parse(p.includedFeatures as string); } catch { return []; } })(),
     }));
     return NextResponse.json(packages);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
   }
 }
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const [pkg] = await sql`INSERT INTO packages ${sql(data)} RETURNING *`;
     const result = { ...pkg, includedFeatures: (() => { try { return JSON.parse(pkg.includedFeatures); } catch { return []; } })() };
     return NextResponse.json(result, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create package' }, { status: 500 });
   }
 }

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       tasks = await sql`SELECT t.*, l.business_name as lead_name FROM tasks t LEFT JOIN leads l ON t.lead_id = l.id ORDER BY t.due_date ASC, t.priority DESC`;
     }
     return NextResponse.json(tasks);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
   }
 }
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const [{ id }] = await sql`INSERT INTO tasks ${sql(data)} RETURNING id`;
     const [task] = await sql`SELECT t.*, l.business_name as lead_name FROM tasks t LEFT JOIN leads l ON t.lead_id = l.id WHERE t.id = ${id}`;
     return NextResponse.json(task, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
   }
 }
