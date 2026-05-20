@@ -51,6 +51,10 @@ export async function GET() {
     });
   } catch (err) {
     console.error('[dashboard]', err);
-    return NextResponse.json({ error: 'Failed to load dashboard', details: String(err) }, { status: 500 });
+    return NextResponse.json({
+      error: 'Failed to load dashboard',
+      details: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    }, { status: 500 });
   }
 }
