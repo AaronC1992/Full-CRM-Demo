@@ -73,6 +73,7 @@ function LeadsContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [sort, setSort] = useState('createdDate');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   // Save column state to localStorage
   useEffect(() => {
     try { localStorage.setItem(LEADS_COLS_KEY, JSON.stringify(colState)); } catch { /* ignore */ }
