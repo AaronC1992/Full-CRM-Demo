@@ -3,12 +3,13 @@ import path from 'path';
 import fs from 'fs';
 
 // On Vercel the deployment filesystem is read-only (AWS Lambda /var/task).
-// Copy the bundled DB to /tmp on cold start so write operations work.
+// Always copy the bundled DB to /tmp on cold start so write operations work
+// and so each deployment gets a fresh copy of the committed database.
 function resolveDbPath(): string {
   const srcPath = path.join(process.cwd(), 'data', 'crm.db');
   if (process.env.VERCEL) {
     const tmpPath = '/tmp/crm.db';
-    if (!fs.existsSync(tmpPath) && fs.existsSync(srcPath)) {
+    if (fs.existsSync(srcPath)) {
       fs.copyFileSync(srcPath, tmpPath);
     }
     return tmpPath;
