@@ -36,3 +36,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# SQLite WAL temp files
+data/crm.db-shm
+data/crm.db-wal
