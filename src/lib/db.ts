@@ -2,9 +2,23 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'crm.db');
+// On Vercel the deployment filesystem is read-only (AWS Lambda /var/task).
+// Copy the bundled DB to /tmp on cold start so write operations work.
+function resolveDbPath(): string {
+  const srcPath = path.join(process.cwd(), 'data', 'crm.db');
+  if (process.env.VERCEL) {
+    const tmpPath = '/tmp/crm.db';
+    if (!fs.existsSync(tmpPath) && fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, tmpPath);
+    }
+    return tmpPath;
+  }
+  return srcPath;
+}
 
-// Ensure data directory exists
+const DB_PATH = resolveDbPath();
+
+// Ensure data directory exists (relevant for local dev only)
 const dataDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
