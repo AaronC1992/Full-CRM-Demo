@@ -1,11 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import {
   LayoutDashboard, Users, PlusCircle, Globe, Handshake,
   CheckSquare, FileDown, Settings, Package, Sparkles,
-  MessageSquare, X, BarChart3, MapPin, ChevronLeft, ChevronRight
+  MessageSquare, X, BarChart3, MapPin, CalendarDays
 } from 'lucide-react';
 
 const nav = [
@@ -16,6 +15,7 @@ const nav = [
   { href: '/deals', label: 'Deals', icon: Handshake },
   { href: '/demos', label: 'Demo Tracker', icon: Globe },
   { href: '/tasks', label: 'Tasks & Follow Ups', icon: CheckSquare },
+  { href: '/tasks?view=calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/outreach', label: 'Outreach Templates', icon: MessageSquare },
   { href: '/import-export', label: 'Import / Export', icon: FileDown },
   { href: '/packages', label: 'Packages', icon: Package },
@@ -30,19 +30,6 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
-
-  const today = new Date();
-  const [calDate, setCalDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
-
-  const year = calDate.getFullYear();
-  const month = calDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const monthLabel = calDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-
-  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
-  while (cells.length % 7 !== 0) cells.push(null);
 
   return (
     <>
@@ -78,9 +65,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
           {nav.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/') && href !== '/leads/add');
-            const exactActive = pathname === href;
-            const isActive = href === '/leads/add' ? exactActive : active;
+            const isCalendar = href.includes('?view=calendar');
+            const basePath = href.split('?')[0];
+            const active = !isCalendar && (pathname === basePath || (basePath !== '/dashboard' && pathname.startsWith(basePath + '/') && basePath !== '/leads/add'));
+            const isActive = isCalendar ? false : (href === '/leads/add' ? pathname === href : active);
             return (
               <Link
                 key={href}
@@ -98,38 +86,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             );
           })}
         </nav>
-
-        {/* Footer */}
-        {/* Mini Calendar */}
-        <div className="px-4 py-4 border-t border-slate-700">
-          <div className="flex items-center justify-between mb-2">
-            <button onClick={() => setCalDate(new Date(year, month - 1, 1))} className="p-1 text-slate-400 hover:text-white rounded">
-              <ChevronLeft size={13} />
-            </button>
-            <span className="text-xs font-medium text-slate-300">{monthLabel}</span>
-            <button onClick={() => setCalDate(new Date(year, month + 1, 1))} className="p-1 text-slate-400 hover:text-white rounded">
-              <ChevronRight size={13} />
-            </button>
-          </div>
-          <div className="grid grid-cols-7 gap-y-0.5">
-            {['S','M','T','W','T','F','S'].map((d, i) => (
-              <div key={i} className="text-center text-slate-500 text-[10px] pb-1">{d}</div>
-            ))}
-            {cells.map((day, i) => {
-              if (!day) return <div key={i} />;
-              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const isToday = dateStr === todayStr;
-              return (
-                <div key={i} className="flex items-center justify-center">
-                  <span className={`text-[11px] w-5 h-5 flex items-center justify-center rounded-full leading-none
-                    ${isToday ? 'bg-blue-500 text-white font-bold' : 'text-slate-400 hover:text-white'}`}>
-                    {day}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-slate-700">

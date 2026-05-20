@@ -1,5 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import Modal from '@/components/ui/Modal';
 import { showToast } from '@/components/ui/Toast';
@@ -27,6 +29,11 @@ const PRIORITY_COLORS: Record<string, string> = {
 const EMPTY: Partial<Task> = { title: '', taskType: 'Call', dueDate: '', priority: 'Normal', status: 'pending', notes: '' };
 
 export default function TasksPage() {
+  return <Suspense><TasksPageInner /></Suspense>;
+}
+
+function TasksPageInner() {
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<(Task & { leadName?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'pending' | 'in_progress' | 'completed' | ''>('pending');
@@ -35,7 +42,7 @@ export default function TasksPage() {
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>(() => searchParams.get('view') === 'calendar' ? 'calendar' : 'list');
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
   const [calendarTasks, setCalendarTasks] = useState<(Task & { leadName?: string })[]>([]);
 
