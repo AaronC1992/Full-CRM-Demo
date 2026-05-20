@@ -493,7 +493,7 @@ export default function LeadDetailPage() {
                   <InfoRow icon={Send} label="Service Opportunity" value={lead.serviceOpportunity} />
                   <InfoRow icon={Tag} label="Suggested Offer" value={lead.suggestedOffer} />
                   {lead.estimatedDealValue != null && (
-                    <InfoRow icon={DollarSign} label="Estimated Value" value={formatCurrency(lead.estimatedDealValue)} />
+                    <InfoRow icon={DollarSign} label="Est. Monthly Value" value={formatCurrency(lead.estimatedDealValue)} />
                   )}
                 </div>
               ) : (
@@ -525,7 +525,7 @@ export default function LeadDetailPage() {
                     <input className={inputCls} value={editForm.suggestedOffer || ''} onChange={e => set('suggestedOffer', e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Estimated Value ($)</label>
+                    <label className="text-xs text-gray-500 mb-1 block">Estimated Monthly Value ($)</label>
                     <input className={inputCls} type="number" value={editForm.estimatedDealValue ?? ''} onChange={e => set('estimatedDealValue', e.target.value ? Number(e.target.value) : null)} />
                   </div>
                   <div>
@@ -676,7 +676,7 @@ export default function LeadDetailPage() {
                 </div>
                 {lead.estimatedDealValue != null && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Est. Value</span>
+                    <span className="text-gray-500">Est. Monthly Value</span>
                     <span className="font-medium text-green-600">{formatCurrency(lead.estimatedDealValue)}</span>
                   </div>
                 )}

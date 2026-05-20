@@ -227,7 +227,7 @@ export default function AddLeadPage() {
                     {LEAD_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </Field>
-                <Field label="Estimated Deal Value ($)">
+                <Field label="Estimated Monthly Value ($)">
                   <input className={inputCls} type="number" value={form.estimatedDealValue ?? ''} onChange={e => set('estimatedDealValue', e.target.value ? Number(e.target.value) : null)} placeholder="1500" />
                 </Field>
                 <Field label="Service Opportunity">
