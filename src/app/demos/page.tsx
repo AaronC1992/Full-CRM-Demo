@@ -6,6 +6,7 @@ import { showToast } from '@/components/ui/Toast';
 import { Demo, DemoStatus, Template } from '@/lib/types';
 import { formatDate, fillTemplate } from '@/lib/utils';
 import { Plus, Edit3, Trash2, ExternalLink, Search, Copy } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const STATUSES: DemoStatus[] = [
   'Idea', 'Started', 'Needs content', 'Ready to send', 'Sent',
@@ -47,6 +48,7 @@ export default function DemosPage() {
   const [editDemo, setEditDemo] = useState<Partial<Demo>>(EMPTY);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const inp = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
 
@@ -91,7 +93,6 @@ export default function DemosPage() {
   };
 
   const deleteDemo = async (id: number) => {
-    if (!confirm('Delete this demo?')) return;
     await fetch(`/api/demos/${id}`, { method: 'DELETE' });
     showToast('Demo deleted.', 'info');
     fetchDemos();
@@ -241,7 +242,7 @@ export default function DemosPage() {
                         <button onClick={() => openEdit(demo)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
                           <Edit3 size={14} />
                         </button>
-                        <button onClick={() => deleteDemo(demo.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
+                        <button onClick={() => setDeleteTarget(demo.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -356,6 +357,14 @@ export default function DemosPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget !== null) deleteDemo(deleteTarget); }}
+        title="Delete Demo"
+        message="Delete this demo? This cannot be undone."
+      />
     </AppLayout>
   );
 }

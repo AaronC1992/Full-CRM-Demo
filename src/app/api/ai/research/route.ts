@@ -85,8 +85,9 @@ Focus on businesses with outdated/no website, low online presence. Estimated dea
     `);
 
     const insertMany = db.transaction((rows: Record<string, unknown>[]) => {
+      const ids: number[] = [];
       for (const l of rows) {
-        stmt.run(
+        const result = stmt.run(
           l.businessName || '', l.contactName || '', l.phone || '',
           l.email || '', l.website || '', l.facebookPage || '',
           l.address || '', l.city || city, l.state || 'MO',
@@ -98,12 +99,15 @@ Focus on businesses with outdated/no website, low online presence. Estimated dea
           l.notes || '', l.painPoints || '', l.personalizedPitch || '',
           JSON.stringify(Array.isArray(l.tags) ? l.tags : [])
         );
+        ids.push(Number(result.lastInsertRowid));
       }
+      return ids;
     });
 
-    insertMany(leads);
+    const insertedIds = insertMany(leads);
+    const leadsWithIds = leads.map((l, i) => ({ ...l, id: insertedIds[i] }));
 
-    return NextResponse.json({ count: leads.length, leads });
+    return NextResponse.json({ count: leadsWithIds.length, leads: leadsWithIds });
   } catch (err) {
     console.error('[ai/research]', err);
     return NextResponse.json({ error: 'Research failed. Please try again.' }, { status: 500 });

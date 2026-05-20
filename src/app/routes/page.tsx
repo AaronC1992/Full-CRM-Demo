@@ -133,11 +133,19 @@ interface StopCardProps {
   onMarkVisited: (stop: RouteStop) => void;
   onMoveUp: (id: number) => void;
   onMoveDown: (id: number) => void;
+  onUpdateStop: (id: number, fields: Partial<RouteStop>) => void;
   isFirst: boolean;
   isLast: boolean;
 }
-function StopCard({ stop, index, routeId, onRemove, onSkip, onMarkVisited, onMoveUp, onMoveDown, isFirst, isLast }: StopCardProps) {
+function StopCard({ stop, index, routeId, onRemove, onSkip, onMarkVisited, onMoveUp, onMoveDown, onUpdateStop, isFirst, isLast }: StopCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editVisitReason, setEditVisitReason] = useState(stop.visitReason || '');
+  const [editPitch, setEditPitch] = useState(stop.recommendedPitch || '');
+  const [editTalkingPoints, setEditTalkingPoints] = useState(Array.isArray(stop.talkingPoints) ? stop.talkingPoints.join('\n') : '');
+  const [editLeaveBehind, setEditLeaveBehind] = useState(stop.leaveBehindSuggestion || '');
+  const [editFollowUp, setEditFollowUp] = useState(stop.followUpAction || '');
+  const [editSaving, setEditSaving] = useState(false);
   const address = [stop.address, stop.city, stop.state].filter(Boolean).join(', ');
   const mapsQuery = encodeURIComponent(address);
 
@@ -210,52 +218,105 @@ function StopCard({ stop, index, routeId, onRemove, onSkip, onMarkVisited, onMov
       {/* Expanded content */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-50 pt-3 space-y-3">
-          {stop.visitReason && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Why Visit</p>
-              <p className="text-sm text-gray-700">{stop.visitReason}</p>
+          {editing ? (
+            <div className="space-y-3">
+              <div>
+                <label className={label}>Why Visit</label>
+                <textarea className={inp + ' resize-none'} rows={2} value={editVisitReason} onChange={e => setEditVisitReason(e.target.value)} />
+              </div>
+              <div>
+                <label className={label}>Pitch</label>
+                <textarea className={inp + ' resize-none'} rows={3} value={editPitch} onChange={e => setEditPitch(e.target.value)} />
+              </div>
+              <div>
+                <label className={label}>Talking Points (one per line)</label>
+                <textarea className={inp + ' resize-none'} rows={4} value={editTalkingPoints} onChange={e => setEditTalkingPoints(e.target.value)} />
+              </div>
+              <div>
+                <label className={label}>Leave Behind</label>
+                <input className={inp} value={editLeaveBehind} onChange={e => setEditLeaveBehind(e.target.value)} />
+              </div>
+              <div>
+                <label className={label}>Follow Up Action</label>
+                <input className={inp} value={editFollowUp} onChange={e => setEditFollowUp(e.target.value)} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button disabled={editSaving} onClick={async () => {
+                  if (!routeId) return;
+                  setEditSaving(true);
+                  const talkingPoints = editTalkingPoints.split('\n').map(t => t.trim()).filter(Boolean);
+                  const fields = { visitReason: editVisitReason, recommendedPitch: editPitch, talkingPoints, leaveBehindSuggestion: editLeaveBehind, followUpAction: editFollowUp };
+                  const res = await fetch(`/api/routes/${routeId}/stops/${stop.id}`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields),
+                  });
+                  if (res.ok) { onUpdateStop(stop.id, fields); setEditing(false); showToast('Stop updated!', 'success'); }
+                  else showToast('Failed to save stop.', 'error');
+                  setEditSaving(false);
+                }} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-60">
+                  <Save size={12} />{editSaving ? 'Saving...' : 'Save'}
+                </button>
+                <button onClick={() => { setEditing(false); setEditVisitReason(stop.visitReason || ''); setEditPitch(stop.recommendedPitch || ''); setEditTalkingPoints(Array.isArray(stop.talkingPoints) ? stop.talkingPoints.join('\n') : ''); setEditLeaveBehind(stop.leaveBehindSuggestion || ''); setEditFollowUp(stop.followUpAction || ''); }}
+                  className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-medium">
+                  Cancel
+                </button>
+              </div>
             </div>
-          )}
-          {stop.recommendedPitch && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Pitch</p>
-              <p className="text-sm text-gray-700">{stop.recommendedPitch}</p>
-            </div>
-          )}
-          {Array.isArray(stop.talkingPoints) && stop.talkingPoints.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Talking Points</p>
-              <ul className="space-y-1">
-                {stop.talkingPoints.map((tp, i) => (
-                  <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
-                    <span className="text-blue-400 mt-1">&#8226;</span>{tp}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {stop.leaveBehindSuggestion && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Leave Behind</p>
-              <p className="text-sm text-gray-700">{stop.leaveBehindSuggestion}</p>
-            </div>
-          )}
-          {stop.followUpAction && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Follow-up Action</p>
-              <p className="text-sm text-gray-700">{stop.followUpAction}</p>
-            </div>
-          )}
-          {stop.visitCompleted && stop.visitOutcome && (
-            <div className="bg-green-50 rounded-lg p-3">
-              <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Visit Outcome</p>
-              {stop.spokeTo && <p className="text-sm text-gray-700">Spoke with: <strong>{stop.spokeTo}</strong></p>}
-              <p className="text-sm text-gray-700 mt-1">{stop.visitOutcome}</p>
-              {stop.nextAction && <p className="text-xs text-green-700 mt-1">Next: {stop.nextAction} {stop.followUpDate ? `by ${stop.followUpDate}` : ''}</p>}
-            </div>
-          )}
-          {stop.skipped && stop.skipReason && (
-            <p className="text-sm text-gray-500 italic">Skipped: {stop.skipReason}</p>
+          ) : (
+            <>
+              {stop.visitReason && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Why Visit</p>
+                  <p className="text-sm text-gray-700">{stop.visitReason}</p>
+                </div>
+              )}
+              {stop.recommendedPitch && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Pitch</p>
+                  <p className="text-sm text-gray-700">{stop.recommendedPitch}</p>
+                </div>
+              )}
+              {Array.isArray(stop.talkingPoints) && stop.talkingPoints.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Talking Points</p>
+                  <ul className="space-y-1">
+                    {stop.talkingPoints.map((tp, i) => (
+                      <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
+                        <span className="text-blue-400 mt-1">&#8226;</span>{tp}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {stop.leaveBehindSuggestion && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Leave Behind</p>
+                  <p className="text-sm text-gray-700">{stop.leaveBehindSuggestion}</p>
+                </div>
+              )}
+              {stop.followUpAction && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Follow Up Action</p>
+                  <p className="text-sm text-gray-700">{stop.followUpAction}</p>
+                </div>
+              )}
+              {stop.visitCompleted && stop.visitOutcome && (
+                <div className="bg-green-50 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Visit Outcome</p>
+                  {stop.spokeTo && <p className="text-sm text-gray-700">Spoke with: <strong>{stop.spokeTo}</strong></p>}
+                  <p className="text-sm text-gray-700 mt-1">{stop.visitOutcome}</p>
+                  {stop.nextAction && <p className="text-xs text-green-700 mt-1">Next: {stop.nextAction} {stop.followUpDate ? `by ${stop.followUpDate}` : ''}</p>}
+                </div>
+              )}
+              {stop.skipped && stop.skipReason && (
+                <p className="text-sm text-gray-500 italic">Skipped: {stop.skipReason}</p>
+              )}
+              <div className="pt-1">
+                <button onClick={() => setEditing(true)}
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-50 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-100 font-medium">
+                  <Edit3 size={12} />Edit Details
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -573,6 +634,10 @@ function RouteBuilderContent() {
 
   function onVisitSaved(stopId: number) {
     setStops(prev => prev.map(s => s.id === stopId ? { ...s, visitCompleted: true } : s));
+  }
+
+  function handleUpdateStop(id: number, fields: Partial<RouteStop>) {
+    setStops(prev => prev.map(s => s.id === id ? { ...s, ...fields } : s));
   }
 
   // ── Copy / Export ─────────────────────────────────────────────────────────────
@@ -971,6 +1036,7 @@ function RouteBuilderContent() {
                       onMarkVisited={setVisitModalStop}
                       onMoveUp={(id) => moveStop(id, 'up')}
                       onMoveDown={(id) => moveStop(id, 'down')}
+                      onUpdateStop={handleUpdateStop}
                       isFirst={i === 0}
                       isLast={i === stops.length - 1}
                     />

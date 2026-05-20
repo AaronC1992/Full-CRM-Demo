@@ -1,11 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import { Lead, LeadStatus, Priority } from '@/lib/types';
 import { LEAD_STATUSES, PRIORITIES, INDUSTRIES, LEAD_SOURCES, STATES, WEBSITE_QUALITY_OPTIONS, SERVICE_OPPORTUNITIES } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronUp, Save, RotateCcw } from 'lucide-react';
+import Modal from '@/components/ui/Modal';
 
 const EMPTY: Partial<Lead> = {
   businessName: '', contactName: '', phone: '', email: '', website: '',
@@ -39,6 +40,23 @@ export default function AddLeadPage() {
   const [advanced, setAdvanced] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [existingTags, setExistingTags] = useState<string[]>([]);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [dupLeads, setDupLeads] = useState<Lead[]>([]);
+  const [showDupModal, setShowDupModal] = useState(false);
+  const tagRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch('/api/leads/tags').then(r => r.ok ? r.json() : []).then(setExistingTags).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (tagRef.current && !tagRef.current.contains(e.target as Node)) setShowTagSuggestions(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const set = (field: keyof Lead, value: unknown) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -62,6 +80,25 @@ export default function AddLeadPage() {
       showToast('Business name is required.', 'error');
       return;
     }
+    // Check for duplicate leads
+    try {
+      const searchRes = await fetch(`/api/leads?search=${encodeURIComponent(form.businessName.trim())}`);
+      if (searchRes.ok) {
+        const matches: Lead[] = await searchRes.json();
+        const dups = matches.filter(l =>
+          l.businessName.toLowerCase() === form.businessName!.trim().toLowerCase()
+        );
+        if (dups.length > 0) {
+          setDupLeads(dups);
+          setShowDupModal(true);
+          return;
+        }
+      }
+    } catch { /* proceed if check fails */ }
+    await doSave();
+  };
+
+  const doSave = async () => {
     setSaving(true);
     try {
       const res = await fetch('/api/leads', {
@@ -258,14 +295,34 @@ export default function AddLeadPage() {
             {/* Tags */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-3">
               <h2 className="font-semibold text-gray-800">Tags</h2>
-              <div className="flex gap-2">
-                <input
-                  className={inputCls + ' flex-1'}
-                  value={tagInput}
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                  placeholder="Add tag and press Enter..."
-                />
+              <div className="flex gap-2" ref={tagRef}>
+                <div className="relative flex-1">
+                  <input
+                    className={inputCls + ' w-full'}
+                    value={tagInput}
+                    onChange={e => { setTagInput(e.target.value); setShowTagSuggestions(true); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                    onFocus={() => setShowTagSuggestions(true)}
+                    placeholder="Add tag and press Enter..."
+                  />
+                  {showTagSuggestions && tagInput.trim() && (() => {
+                    const suggestions = existingTags.filter(t =>
+                      t.includes(tagInput.trim().toLowerCase()) &&
+                      !((form.tags || []) as string[]).includes(t)
+                    );
+                    if (!suggestions.length) return null;
+                    return (
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                        {suggestions.map(s => (
+                          <button key={s} type="button"
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            onMouseDown={e => { e.preventDefault(); set('tags', [...((form.tags || []) as string[]), s]); setTagInput(''); setShowTagSuggestions(false); }}
+                          >{s}</button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
                 <button type="button" onClick={addTag} className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Add</button>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -301,6 +358,26 @@ export default function AddLeadPage() {
         </div>
 
       </form>
+
+      {/* Duplicate warning modal */}
+      <Modal open={showDupModal} onClose={() => setShowDupModal(false)} title="Possible Duplicate Lead" size="md">
+        <p className="text-sm text-gray-600 mb-3">A lead with this business name already exists:</p>
+        <div className="space-y-2 mb-5">
+          {dupLeads.map(l => (
+            <div key={l.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div>
+                <p className="text-sm font-medium text-gray-800">{l.businessName}</p>
+                <p className="text-xs text-gray-500">{[l.city, l.state].filter(Boolean).join(', ')} {l.phone && `· ${l.phone}`}</p>
+              </div>
+              <a href={`/leads/${l.id}`} className="text-xs text-blue-600 hover:underline">View</a>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => setShowDupModal(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button onClick={() => { setShowDupModal(false); doSave(); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Add Anyway</button>
+        </div>
+      </Modal>
     </AppLayout>
   );
 }

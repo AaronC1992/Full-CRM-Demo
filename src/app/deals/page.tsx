@@ -6,6 +6,7 @@ import { showToast } from '@/components/ui/Toast';
 import { Deal, DealStage, ContractStatus, PaymentStatus } from '@/lib/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { Plus, Edit3, Trash2, DollarSign } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const STAGES: DealStage[] = ['Opportunity', 'Quoted', 'Proposal sent', 'Negotiating', 'Won', 'Lost'];
 
@@ -28,6 +29,7 @@ export default function DealsPage() {
   const [editDeal, setEditDeal] = useState<Partial<Deal>>(EMPTY);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const fetchDeals = useCallback(async () => {
     const params = filterStage ? `?stage=${encodeURIComponent(filterStage)}` : '';
@@ -60,7 +62,6 @@ export default function DealsPage() {
   };
 
   const deleteDeal = async (id: number) => {
-    if (!confirm('Delete this deal?')) return;
     await fetch(`/api/deals/${id}`, { method: 'DELETE' });
     showToast('Deal deleted.', 'info');
     fetchDeals();
@@ -176,7 +177,7 @@ export default function DealsPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
                         <button onClick={() => openEdit(deal)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Edit3 size={14} /></button>
-                        <button onClick={() => deleteDeal(deal.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={14} /></button>
+                        <button onClick={() => setDeleteTarget(deal.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -250,6 +251,14 @@ export default function DealsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget !== null) deleteDeal(deleteTarget); }}
+        title="Delete Deal"
+        message="Delete this deal? This cannot be undone."
+      />
     </AppLayout>
   );
 }

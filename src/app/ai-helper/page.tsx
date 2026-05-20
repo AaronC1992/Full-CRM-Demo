@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import { Sparkles, RefreshCw, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
@@ -17,6 +18,7 @@ interface LeadSnapshot {
 }
 
 interface ResearchedLead {
+  id?: number;
   businessName: string;
   city: string;
   industry: string;
@@ -260,11 +262,16 @@ export default function AIHelperPage() {
                         <p className="text-xs text-gray-500">{l.city} &middot; {l.industry} &middot; {l.hasWebsite === 'No' ? 'No website' : l.website || 'Has website'}</p>
                         {l.serviceOpportunity && <p className="text-xs text-indigo-600 mt-0.5">{l.serviceOpportunity}</p>}
                       </div>
-                      <div className="text-right shrink-0 ml-4">
+                      <div className="text-right shrink-0 ml-4 flex flex-col items-end gap-1">
                         {l.estimatedDealValue > 0 && <p className="text-sm font-semibold text-green-600">${l.estimatedDealValue.toLocaleString()}</p>}
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${l.priority === 'Hot' ? 'bg-red-100 text-red-700' : l.priority === 'Warm' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
                           {l.priority}
                         </span>
+                        {l.id && (
+                          <Link href={`/leads/${l.id}`} className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
+                            View <ExternalLink size={10} />
+                          </Link>
+                        )}
                       </div>
                     </div>
                   ))}

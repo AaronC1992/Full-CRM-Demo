@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge, PriorityBadge, TagBadge } from '@/components/ui/Badge';
@@ -67,6 +67,10 @@ export default function LeadDetailPage() {
   const [noteText, setNoteText] = useState('');
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [existingTags, setExistingTags] = useState<string[]>([]);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [activityFilter, setActivityFilter] = useState('');
+  const tagRef = useRef<HTMLDivElement>(null);
   const [leadDemos, setLeadDemos] = useState<Demo[]>([]);
   const [leadTasks, setLeadTasks] = useState<Task[]>([]);
   const [showCreateDealModal, setShowCreateDealModal] = useState(false);
@@ -93,6 +97,18 @@ export default function LeadDetailPage() {
   }, [params.id]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    fetch('/api/leads/tags').then(r => r.ok ? r.json() : []).then(setExistingTags).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (tagRef.current && !tagRef.current.contains(e.target as Node)) setShowTagSuggestions(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const save = async () => {
     if (!lead) return;
@@ -605,28 +621,39 @@ export default function LeadDetailPage() {
 
             {/* Activity Timeline */}
             <Section title="Activity Timeline">
-              <div className="flex justify-end mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="flex flex-wrap gap-1">
+                  {[['', 'All'], ['note', 'Notes'], ['call', 'Calls'], ['follow_up', 'Follow Ups'], ['status_change', 'Status'], ['won', 'Won'], ['lost', 'Lost']].map(([val, label]) => (
+                    <button key={val} onClick={() => setActivityFilter(val)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${activityFilter === val ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <button onClick={() => setShowNoteModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-medium hover:bg-blue-100">
                   <Plus size={12} /> Add Note
                 </button>
               </div>
               <div className="space-y-3">
-                {activities.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No activity yet.</p>}
-                {activities.map(activity => (
-                  <div key={activity.id} className="flex items-start gap-3">
-                    <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
-                      activity.type === 'won' ? 'bg-green-500' :
-                      activity.type === 'lost' ? 'bg-red-400' :
-                      activity.type === 'status_change' ? 'bg-purple-400' :
-                      activity.type === 'call' ? 'bg-blue-400' :
-                      'bg-gray-300'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{activity.description}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDateTime(activity.createdDate)}</p>
+                {(() => {
+                  const filtered = activityFilter ? activities.filter(a => a.type === activityFilter) : activities;
+                  if (filtered.length === 0) return <p className="text-sm text-gray-400 text-center py-4">{activityFilter ? 'No matching activity.' : 'No activity yet.'}</p>;
+                  return filtered.map(activity => (
+                    <div key={activity.id} className="flex items-start gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
+                        activity.type === 'won' ? 'bg-green-500' :
+                        activity.type === 'lost' ? 'bg-red-400' :
+                        activity.type === 'status_change' ? 'bg-purple-400' :
+                        activity.type === 'call' ? 'bg-blue-400' :
+                        'bg-gray-300'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{activity.description}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{formatDateTime(activity.createdDate)}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </Section>
 
@@ -700,23 +727,44 @@ export default function LeadDetailPage() {
                 )}
               </div>
               {editing && (
-                <div className="mt-2 flex gap-1">
-                  <input
-                    className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs"
-                    value={tagInput}
-                    onChange={e => setTagInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const t = tagInput.trim().toLowerCase();
-                        if (t && !editForm.tags?.includes(t)) {
-                          set('tags', [...(editForm.tags || []), t]);
+                <div className="mt-2" ref={tagRef}>
+                  <div className="relative flex gap-1">
+                    <input
+                      className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs"
+                      value={tagInput}
+                      onChange={e => { setTagInput(e.target.value); setShowTagSuggestions(true); }}
+                      onFocus={() => setShowTagSuggestions(true)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const t = tagInput.trim().toLowerCase();
+                          if (t && !editForm.tags?.includes(t)) {
+                            set('tags', [...(editForm.tags || []), t]);
+                          }
+                          setTagInput('');
+                          setShowTagSuggestions(false);
                         }
-                        setTagInput('');
-                      }
-                    }}
-                    placeholder="Add tag..."
-                  />
+                      }}
+                      placeholder="Add tag..."
+                    />
+                    {showTagSuggestions && tagInput.trim() && (() => {
+                      const suggestions = existingTags.filter(t =>
+                        t.includes(tagInput.trim().toLowerCase()) &&
+                        !(editForm.tags || []).includes(t)
+                      );
+                      if (!suggestions.length) return null;
+                      return (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-32 overflow-y-auto">
+                          {suggestions.map(s => (
+                            <button key={s} type="button"
+                              className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                              onMouseDown={e => { e.preventDefault(); set('tags', [...(editForm.tags || []), s]); setTagInput(''); setShowTagSuggestions(false); }}
+                            >{s}</button>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
             </div>

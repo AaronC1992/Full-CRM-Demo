@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal';
 import { showToast } from '@/components/ui/Toast';
 import { Template, TemplateType } from '@/lib/types';
 import { Plus, Edit3, Trash2, Copy, Info } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const TEMPLATE_TYPES: TemplateType[] = [
   'cold_call', 'voicemail', 'cold_email', 'facebook_message', 'text_message',
@@ -52,6 +53,7 @@ export default function OutreachPage() {
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showVars, setShowVars] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const fetchTemplates = useCallback(async () => {
     const res = await fetch('/api/templates');
@@ -85,7 +87,6 @@ export default function OutreachPage() {
   };
 
   const deleteTemplate = async (id: number) => {
-    if (!confirm('Delete this template?')) return;
     await fetch(`/api/templates/${id}`, { method: 'DELETE' });
     showToast('Template deleted.', 'info');
     fetchTemplates();
@@ -174,7 +175,7 @@ export default function OutreachPage() {
                       <button onClick={() => openEdit(t)} title="Edit" className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         <Edit3 size={14} />
                       </button>
-                      <button onClick={() => deleteTemplate(t.id)} title="Delete" className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                      <button onClick={() => setDeleteTarget(t.id)} title="Delete" className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -234,6 +235,13 @@ export default function OutreachPage() {
         </div>
       </Modal>
 
+      <ConfirmModal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget !== null) deleteTemplate(deleteTarget); }}
+        title="Delete Template"
+        message="Delete this template? This cannot be undone."
+      />
     </AppLayout>
   );
 }

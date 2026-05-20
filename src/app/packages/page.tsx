@@ -6,6 +6,7 @@ import { showToast } from '@/components/ui/Toast';
 import { Package } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Plus, Edit3, Trash2, Check } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const EMPTY: Partial<Package> = {
   packageName: '', description: '', setupPrice: undefined,
@@ -20,6 +21,7 @@ export default function PackagesPage() {
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [featureInput, setFeatureInput] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const fetchPackages = useCallback(async () => {
     const res = await fetch('/api/packages');
@@ -51,7 +53,6 @@ export default function PackagesPage() {
   };
 
   const deletePkg = async (id: number) => {
-    if (!confirm('Delete this package?')) return;
     await fetch(`/api/packages/${id}`, { method: 'DELETE' });
     showToast('Package deleted.', 'info');
     fetchPackages();
@@ -93,7 +94,7 @@ export default function PackagesPage() {
                 <div key={pkg.id} className="border border-gray-100 rounded-xl p-4 hover:border-gray-200 transition-colors relative group">
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openEdit(pkg)} className="p-1 text-gray-400 hover:text-blue-600 bg-white rounded border border-gray-100 shadow-sm"><Edit3 size={12} /></button>
-                    <button onClick={() => deletePkg(pkg.id)} className="p-1 text-gray-400 hover:text-red-500 bg-white rounded border border-gray-100 shadow-sm"><Trash2 size={12} /></button>
+                    <button onClick={() => setDeleteTarget(pkg.id)} className="p-1 text-gray-400 hover:text-red-500 bg-white rounded border border-gray-100 shadow-sm"><Trash2 size={12} /></button>
                   </div>
                   <h3 className="font-semibold text-gray-800 text-sm pr-14">{pkg.packageName}</h3>
                   <div className="mt-2 space-y-0.5">
@@ -171,6 +172,14 @@ export default function PackagesPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget !== null) deletePkg(deleteTarget); }}
+        title="Delete Package"
+        message="Delete this package? This cannot be undone."
+      />
     </AppLayout>
   );
 }

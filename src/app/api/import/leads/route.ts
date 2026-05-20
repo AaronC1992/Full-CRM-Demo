@@ -22,14 +22,28 @@ export async function POST(req: NextRequest) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
+    const dupCheck = db.prepare(
+      'SELECT id FROM leads WHERE businessName=? AND (phone=? OR website=?)'
+    );
+
     const insertMany = db.transaction((items: Record<string, unknown>[]) => {
       let imported = 0;
+      let skipped = 0;
       const errors: string[] = [];
       for (let i = 0; i < items.length; i++) {
         const lead = items[i];
         if (!lead.businessName) {
           errors.push(`Row ${i + 1}: Missing businessName`);
           continue;
+        }
+        // Skip duplicates when phone or website matches
+        if (lead.phone || lead.website) {
+          const dup = dupCheck.get(
+            String(lead.businessName),
+            String(lead.phone || ''),
+            String(lead.website || '')
+          ) as { id: number } | undefined;
+          if (dup) { skipped++; continue; }
         }
         try {
           const tags = Array.isArray(lead.tags)
@@ -57,7 +71,7 @@ export async function POST(req: NextRequest) {
           errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : 'Unknown error'}`);
         }
       }
-      return { imported, skipped: items.length - imported, errors };
+      return { imported, skipped, errors };
     });
 
     const result = insertMany(leads as Record<string, unknown>[]);

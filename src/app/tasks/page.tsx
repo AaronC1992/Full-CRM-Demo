@@ -5,7 +5,8 @@ import Modal from '@/components/ui/Modal';
 import { showToast } from '@/components/ui/Toast';
 import { Task, TaskType } from '@/lib/types';
 import { formatDate, isOverdue, isDueToday } from '@/lib/utils';
-import { Plus, Edit3, Trash2, CheckCircle, Circle, AlertCircle } from 'lucide-react';
+import { Plus, Edit3, Trash2, CheckCircle, Circle, AlertCircle, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import Link from 'next/link';
 
 const TASK_TYPES: TaskType[] = ['Call', 'Email', 'Facebook message', 'Text', 'Build demo', 'Send demo', 'Follow up', 'Meeting', 'Proposal', 'Other'];
@@ -33,6 +34,10 @@ export default function TasksPage() {
   const [editTask, setEditTask] = useState<Partial<Task>>(EMPTY);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
+  const [calendarTasks, setCalendarTasks] = useState<(Task & { leadName?: string })[]>([]);
 
   const fetchTasks = useCallback(async () => {
     const params = filterStatus ? `?status=${filterStatus}` : '';
@@ -42,6 +47,15 @@ export default function TasksPage() {
   }, [filterStatus]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  const fetchAllTasks = useCallback(async () => {
+    const res = await fetch('/api/tasks');
+    if (res.ok) setCalendarTasks(await res.json());
+  }, []);
+
+  useEffect(() => {
+    if (viewMode === 'calendar') fetchAllTasks();
+  }, [viewMode, fetchAllTasks]);
 
   const openNew = () => { setEditTask(EMPTY); setIsNew(true); setShowModal(true); };
   const openEdit = (t: Task) => { setEditTask({ ...t }); setIsNew(false); setShowModal(true); };
@@ -65,7 +79,6 @@ export default function TasksPage() {
   };
 
   const deleteTask = async (id: number) => {
-    if (!confirm('Delete this task?')) return;
     await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
     showToast('Task deleted.', 'info');
     fetchTasks();
@@ -127,16 +140,79 @@ export default function TasksPage() {
             ))}
           </div>
           <div className="flex-1" />
+          <button
+            onClick={() => setViewMode(m => m === 'list' ? 'calendar' : 'list')}
+            className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+              viewMode === 'calendar' ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <CalendarDays size={15} />
+            {viewMode === 'calendar' ? 'List View' : 'Calendar'}
+          </button>
           <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
             <Plus size={16} /> Add Task
           </button>
         </div>
 
         {loading && <div className="flex justify-center py-12"><div className="animate-spin w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full" /></div>}
-        {!loading && tasks.length === 0 && <div className="text-center py-16 text-gray-400">No tasks. <button onClick={openNew} className="text-blue-500 hover:underline">Add one.</button></div>}
+        {!loading && tasks.length === 0 && viewMode === 'list' && <div className="text-center py-16 text-gray-400">No tasks. <button onClick={openNew} className="text-blue-500 hover:underline">Add one.</button></div>}
+
+        {/* Calendar view */}
+        {viewMode === 'calendar' && (() => {
+          const calYear = calMonth.getFullYear();
+          const calMonthNum = calMonth.getMonth();
+          const calFirstDay = new Date(calYear, calMonthNum, 1).getDay();
+          const calDaysInMonth = new Date(calYear, calMonthNum + 1, 0).getDate();
+          const calCells: (number | null)[] = [];
+          for (let i = 0; i < calFirstDay; i++) calCells.push(null);
+          for (let d = 1; d <= calDaysInMonth; d++) calCells.push(d);
+          const calTasksByDate: Record<string, typeof calendarTasks> = {};
+          for (const t of calendarTasks) {
+            if (t.dueDate) {
+              const dk = t.dueDate.split('T')[0];
+              if (!calTasksByDate[dk]) calTasksByDate[dk] = [];
+              calTasksByDate[dk].push(t);
+            }
+          }
+          const calTodayStr = new Date().toISOString().split('T')[0];
+          const calMonthStr = `${calYear}-${String(calMonthNum + 1).padStart(2, '0')}`;
+          return (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <button onClick={() => setCalMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg"><ChevronLeft size={16} /></button>
+                <h3 className="font-semibold text-gray-800">{calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
+                <button onClick={() => setCalMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg"><ChevronRight size={16} /></button>
+              </div>
+              <div className="grid grid-cols-7 gap-px bg-gray-100">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                  <div key={d} className="bg-white text-center text-xs font-semibold text-gray-500 py-2">{d}</div>
+                ))}
+                {calCells.map((day, idx) => {
+                  if (!day) return <div key={`e${idx}`} className="bg-white min-h-[72px]" />;
+                  const ds = `${calMonthStr}-${String(day).padStart(2, '0')}`;
+                  const dt = calTasksByDate[ds] || [];
+                  const isToday = ds === calTodayStr;
+                  const isPast = ds < calTodayStr;
+                  const hasOverdue = isPast && dt.some(t => t.status !== 'completed');
+                  return (
+                    <div key={ds} className={`bg-white min-h-[72px] p-1 ${isToday ? 'ring-2 ring-inset ring-blue-400' : ''}`}>
+                      <p className={`text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full mb-0.5 ${isToday ? 'bg-blue-600 text-white' : hasOverdue ? 'text-red-500' : 'text-gray-600'}`}>{day}</p>
+                      {dt.slice(0, 3).map(t => (
+                        <div key={t.id} title={t.title} className={`text-xs px-1 rounded mb-0.5 truncate leading-5 ${t.status === 'completed' ? 'bg-gray-50 text-gray-400 line-through' : hasOverdue ? 'bg-red-50 text-red-700' : isToday ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-700'}`}>
+                          {t.title}
+                        </div>
+                      ))}
+                      {dt.length > 3 && <p className="text-xs text-gray-400 mt-0.5">+{dt.length - 3} more</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Task list */}
-        <div className="space-y-2">
+        {viewMode === 'list' && <div className="space-y-2">
           {tasks.map(task => {
             const overdue = task.dueDate && isOverdue(task.dueDate) && task.status !== 'completed';
             const dueToday = task.dueDate && isDueToday(task.dueDate) && task.status !== 'completed';
@@ -189,14 +265,22 @@ export default function TasksPage() {
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button onClick={() => openEdit(task)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Edit3 size={13} /></button>
-                  <button onClick={() => deleteTask(task.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
+                  <button onClick={() => setDeleteTarget(task.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={13} /></button>
                 </div>
               </div>
             );
           })}
-        </div>
+        </div>}
 
       </div>
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget !== null) deleteTask(deleteTarget); }}
+        title="Delete Task"
+        message="Delete this task? This cannot be undone."
+      />
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={isNew ? 'Add Task' : 'Edit Task'} size="md">
         <div className="space-y-4">

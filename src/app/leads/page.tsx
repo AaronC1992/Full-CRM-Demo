@@ -242,6 +242,11 @@ function LeadsContent() {
                               <Globe size={10} /> site
                             </a>
                           )}
+                          {lead.notes && (
+                            <p className="text-xs text-gray-400 mt-0.5 max-w-[180px] truncate" title={lead.notes}>
+                              {lead.notes.length > 60 ? lead.notes.slice(0, 60) + '\u2026' : lead.notes}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </td>
