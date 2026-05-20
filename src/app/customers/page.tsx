@@ -344,21 +344,6 @@ export default function CustomersPage() {
 }
 
 
-function ServiceTag({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-2.5 py-0.5 text-xs font-medium">
-      <Package size={10} />
-      {label}
-    </span>
-  );
-}
-
-export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterIndustry, setFilterIndustry] = useState('');
-
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     const res = await fetch('/api/leads?status=Won&dir=desc&sort=updatedDate');
