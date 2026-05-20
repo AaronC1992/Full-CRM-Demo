@@ -1,10 +1,11 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import {
   LayoutDashboard, Users, PlusCircle, Globe, Handshake,
   CheckSquare, FileDown, Settings, Package, Sparkles,
-  MessageSquare, X, BarChart3, MapPin
+  MessageSquare, X, BarChart3, MapPin, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const nav = [
@@ -29,6 +30,19 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
+
+  const today = new Date();
+  const [calDate, setCalDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const monthLabel = calDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  while (cells.length % 7 !== 0) cells.push(null);
 
   return (
     <>
@@ -84,6 +98,38 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             );
           })}
         </nav>
+
+        {/* Footer */}
+        {/* Mini Calendar */}
+        <div className="px-4 py-4 border-t border-slate-700">
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => setCalDate(new Date(year, month - 1, 1))} className="p-1 text-slate-400 hover:text-white rounded">
+              <ChevronLeft size={13} />
+            </button>
+            <span className="text-xs font-medium text-slate-300">{monthLabel}</span>
+            <button onClick={() => setCalDate(new Date(year, month + 1, 1))} className="p-1 text-slate-400 hover:text-white rounded">
+              <ChevronRight size={13} />
+            </button>
+          </div>
+          <div className="grid grid-cols-7 gap-y-0.5">
+            {['S','M','T','W','T','F','S'].map((d, i) => (
+              <div key={i} className="text-center text-slate-500 text-[10px] pb-1">{d}</div>
+            ))}
+            {cells.map((day, i) => {
+              if (!day) return <div key={i} />;
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const isToday = dateStr === todayStr;
+              return (
+                <div key={i} className="flex items-center justify-center">
+                  <span className={`text-[11px] w-5 h-5 flex items-center justify-center rounded-full leading-none
+                    ${isToday ? 'bg-blue-500 text-white font-bold' : 'text-slate-400 hover:text-white'}`}>
+                    {day}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-slate-700">
