@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import getDb from '@/lib/db';
 import { jsonToCsv } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const sql = getDb();
