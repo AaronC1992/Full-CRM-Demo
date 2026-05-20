@@ -1,5 +1,14 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+
+const LEADS_CACHE_KEY = 'cuecrm_leads_cache';
+function getInitialLeads(): Lead[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const c = sessionStorage.getItem(LEADS_CACHE_KEY);
+    return c ? JSON.parse(c) : [];
+  } catch { return []; }
+}
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badge';
 import { Lead } from '@/lib/types';
@@ -14,9 +23,13 @@ import {
 
 function LeadsContent() {
   const searchParams = useSearchParams();
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [leads, setLeads] = useState<Lead[]>(getInitialLeads);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const leadsRef = useRef<Lead[]>([]);
+  leadsRef.current = leads;
   const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || '');
   const [filterPriority, setFilterPriority] = useState(searchParams.get('priority') || '');
   const [filterIndustry, setFilterIndustry] = useState('');
@@ -25,12 +38,19 @@ function LeadsContent() {
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+  // Debounce search input → fetch
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const toggleSelect = (id: number) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const toggleSelectAll = () => setSelectedIds(prev => prev.size === leads.length ? new Set() : new Set(leads.map(l => l.id)));
   const buildRouteUrl = `/routes?leads=${Array.from(selectedIds).join(',')}`;  
 
   const fetchLeads = useCallback(async () => {
-    setLoading(true);
+    if (leadsRef.current.length === 0) setLoading(true);
+    else setRefreshing(true);
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (filterStatus) params.set('status', filterStatus);
@@ -41,11 +61,16 @@ function LeadsContent() {
     try {
       const res = await fetch(`/api/leads?${params}`);
       const data = await res.json();
-      setLeads(Array.isArray(data) ? data : []);
+      const arr = Array.isArray(data) ? data : [];
+      setLeads(arr);
+      if (!search && !filterStatus && !filterPriority && !filterIndustry) {
+        try { sessionStorage.setItem(LEADS_CACHE_KEY, JSON.stringify(arr)); } catch { /* ignore */ }
+      }
     } catch {
       setLeads([]);
     }
     setLoading(false);
+    setRefreshing(false);
   }, [search, filterStatus, filterPriority, filterIndustry, sort, dir]);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
@@ -77,8 +102,8 @@ function LeadsContent() {
             <input
               type="text"
               placeholder="Search leads..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -149,9 +174,14 @@ function LeadsContent() {
 
         {/* Count + Route Builder */}
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <p className="text-sm text-gray-500">
-            {loading ? 'Loading...' : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
-            {selectedIds.size > 0 && <span className="ml-2 text-blue-600 font-medium">{selectedIds.size} selected</span>}
+          <p className="text-sm text-gray-500 flex items-center gap-2">
+            {loading ? 'Loading...' : (
+              <>
+                {refreshing && <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin inline-block" />}
+                {`${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
+                {selectedIds.size > 0 && <span className="ml-2 text-blue-600 font-medium">{selectedIds.size} selected</span>}
+              </>
+            )}
           </p>
           <div className="flex items-center gap-2">
             {selectedIds.size > 0 && (
