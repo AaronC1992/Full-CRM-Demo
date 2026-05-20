@@ -13,7 +13,7 @@ import {
   ChevronDown, ChevronUp, Copy, Download, ExternalLink, Map,
   CheckCircle2, XCircle, Play, Save, Trash2, SkipForward,
   AlertCircle, Plus, Calendar, Star, Flame, Zap, RotateCcw,
-  ArrowUpDown, List, Eye
+  ArrowUpDown, List, Eye, Edit3
 } from 'lucide-react';
 import Link from 'next/link';
 
