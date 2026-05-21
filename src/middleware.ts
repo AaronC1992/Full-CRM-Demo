@@ -7,7 +7,10 @@ const COOKIE_NAME = 'cue_session';
 // Routes that don't require authentication
 const PUBLIC_PATHS = ['/login', '/api/auth/login'];
 
+// AUTH DISABLED FOR TESTING — re-enable by removing the early return below
 export async function middleware(req: NextRequest) {
+  return NextResponse.next();
+
   const { pathname } = req.nextUrl;
 
   // Allow public paths through
