@@ -30,7 +30,7 @@ Provide:
 5. **Recommended Service Package** with pricing
 6. **Follow-Up Strategy** (timeline and approach)
 
-Keep it practical and concise. Aaron (918 808 0074) will use this directly in his sales process.`;
+Keep it practical and concise. This will be used directly in the sales process.`;
 
     const completion = await client.chat.completions.create({
       model: 'gpt-4o-mini',

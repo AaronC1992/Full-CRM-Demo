@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressStr)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
     const res = await fetch(url);
     const data = await res.json();
-    if (data.status !== 'OK' || !data.results[0]) {
+    if (data.status !== 'OK' || !data.results?.[0]?.geometry?.location) {
       return NextResponse.json({ error: `Geocoding failed: ${data.status}` }, { status: 400 });
     }
     const { lat, lng } = data.results[0].geometry.location;

@@ -8,11 +8,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { city, industry, count } = await req.json();
+    const { city, industry, count: rawCount } = await req.json();
 
-    if (!city || !industry || !count) {
+    if (!city || !industry || !rawCount) {
       return NextResponse.json({ error: 'city, industry, and count are required.' }, { status: 400 });
     }
+    const count = Math.min(Math.max(Number(rawCount), 1), 50);
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 

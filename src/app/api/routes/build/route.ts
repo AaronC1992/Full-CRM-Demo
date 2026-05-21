@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     const leadMap: Record<string, Record<string, unknown>> = {};
     for (const l of leadsWithAddress) leadMap[String(l.id)] = l;
 
-    const recommendedStops = (aiPlan.recommendedStops as Record<string, unknown>[] || []).map((s, i) => {
+    const recommendedStops = (Array.isArray(aiPlan.recommendedStops) ? aiPlan.recommendedStops as Record<string, unknown>[] : []).map((s, i) => {
       const lead = leadMap[s.leadId as string] || {};
       return {
         leadId: lead.id ?? null,

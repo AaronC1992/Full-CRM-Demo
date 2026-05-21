@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       const phone = String(lead.phone || '');
       const website = String(lead.website || '');
       if (phone || website) {
-        const [dup] = await sql`SELECT id FROM leads WHERE business_name = ${businessName} AND (phone = ${phone} OR website = ${website})`;
+        const [dup] = await sql`SELECT id FROM leads WHERE business_name = ${businessName} AND ((${phone} != '' AND phone = ${phone}) OR (${website} != '' AND website = ${website}))`;
         if (dup) { skipped++; continue; }
       }
       try {

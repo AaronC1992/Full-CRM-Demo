@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
       ${city ? sql`AND city ILIKE ${`%${city}%`}` : sql``}
       ${industry ? sql`AND industry = ${industry}` : sql``}
       ORDER BY ${sql.unsafe(safeSort)} ${sql.unsafe(dir)}
+      LIMIT 2000
     `;
     return NextResponse.json((rows as Record<string, unknown>[]).map(parseLead));
   } catch (err) {
