@@ -454,7 +454,9 @@ function RouteBuilderContent() {
       params.set('sort', 'priority');
       params.set('dir', 'desc');
       const res = await fetch(`/api/leads?${params}`);
+      if (!res.ok) { setMatchingLeads([]); return; }
       let data: Lead[] = await res.json();
+      if (!Array.isArray(data)) { setMatchingLeads([]); return; }
       // Apply client-side filters
       if (filters.hotOnly) data = data.filter(l => l.priority === 'Hot' || l.priority === 'Urgent');
       if (filters.noWebsite) data = data.filter(l => l.hasWebsite === 'No' || !l.website);
@@ -523,8 +525,9 @@ function RouteBuilderContent() {
       showToast(`Route built with ${data.stops?.length || 0} stops!`, 'success');
     } catch {
       showToast('Route build failed. Check your connection.', 'error');
+    } finally {
+      setBuildLoading(false);
     }
-    setBuildLoading(false);
   }
 
   // ── Optimize with Google Maps ────────────────────────────────────────────────

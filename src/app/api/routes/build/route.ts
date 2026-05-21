@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.3,
-      max_tokens: 3000,
+      max_tokens: 6000,
     });
 
     let aiPlan: Record<string, unknown>;
