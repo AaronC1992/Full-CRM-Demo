@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
     let leads: Record<string, unknown>[] = [];
 
     if (selectedLeadIds.length > 0) {
-      leads = await sql`SELECT * FROM leads WHERE id = ANY(${sql.array(selectedLeadIds)})` as Record<string, unknown>[];
+      const ids = selectedLeadIds.map((id: unknown) => parseInt(String(id), 10)).filter((id: number) => !isNaN(id));
+      leads = await sql`SELECT * FROM leads WHERE id = ANY(${sql.array(ids, 23)})` as Record<string, unknown>[];
     } else {
       const today = new Date().toISOString().split('T')[0];
       const maxLeads = Math.min(Number(config.maxStops || 20) * 3, 60);
