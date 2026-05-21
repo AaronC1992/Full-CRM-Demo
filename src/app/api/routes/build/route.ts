@@ -47,27 +47,8 @@ export async function POST(req: NextRequest) {
     const leadsWithoutAddress = leads.filter(l => !l.address || (!l.city && !l.state));
 
     const geocoded: Record<number, { lat: number; lng: number; placeId: string }> = {};
-    if (process.env.GOOGLE_MAPS_API_KEY) {
-      const toGeocode = leadsWithAddress.filter(l => !l.latitude || !l.longitude).slice(0, 25);
-      for (const lead of toGeocode) {
-        try {
-          const addressStr = [lead.address, lead.city, lead.state, 'USA'].filter(Boolean).join(', ');
-          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressStr)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
-          const res = await fetch(url);
-          const data = await res.json();
-          if (data.status === 'OK' && data.results[0]) {
-            const { lat, lng } = data.results[0].geometry.location;
-            const placeId = data.results[0].place_id || '';
-            geocoded[lead.id as number] = { lat, lng, placeId };
-            const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-            await sql`UPDATE leads SET latitude = ${lat}, longitude = ${lng}, place_id = ${placeId}, updated_date = ${ts} WHERE id = ${lead.id as number}`;
-            lead.latitude = lat;
-            lead.longitude = lng;
-            lead.placeId = placeId;
-          }
-        } catch { /* geocoding failed for this lead, skip */ }
-      }
-    }
+    // Geocoding is skipped during AI build to avoid timeout.
+    // Leads are geocoded lazily via /api/leads/geocode or during Map optimization.
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
