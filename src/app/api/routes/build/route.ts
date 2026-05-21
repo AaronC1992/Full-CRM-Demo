@@ -14,15 +14,14 @@ export async function POST(req: NextRequest) {
     let leads: Record<string, unknown>[] = [];
 
     if (selectedLeadIds.length > 0) {
-      leads = await sql`SELECT * FROM leads WHERE id = ANY(${sql.array(selectedLeadIds)}) AND do_not_visit != 1` as Record<string, unknown>[];
+      leads = await sql`SELECT * FROM leads WHERE id = ANY(${sql.array(selectedLeadIds)})` as Record<string, unknown>[];
     } else {
       const today = new Date().toISOString().split('T')[0];
       const maxLeads = Math.min(Number(config.maxStops || 20) * 3, 60);
 
       leads = await sql`
         SELECT * FROM leads
-        WHERE do_not_visit != 1
-          AND route_eligible != 0
+        WHERE 1=1
           ${filters.city ? sql`AND city ILIKE ${'%' + filters.city + '%'}` : sql``}
           ${filters.state ? sql`AND state = ${filters.state}` : sql``}
           ${filters.status ? sql`AND lead_status = ${filters.status}` : sql``}
@@ -143,7 +142,8 @@ export async function POST(req: NextRequest) {
       totalLeadsEvaluated: leadsForAI.length,
     });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Route build failed. Please try again.' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[routes/build]', message);
+    return NextResponse.json({ error: `Route build failed: ${message}` }, { status: 500 });
   }
 }
