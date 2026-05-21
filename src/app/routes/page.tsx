@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
@@ -443,17 +443,22 @@ function RouteBuilderContent() {
   const [routeStats, setRouteStats] = useState({ driveTime: '', distance: '' });
 
   // ── Load matching leads ──────────────────────────────────────────────────────
+  const fetchLeadsAbortRef = useRef<AbortController | null>(null);
   const fetchLeads = useCallback(async () => {
+    fetchLeadsAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchLeadsAbortRef.current = controller;
     setLeadsLoading(true);
     try {
       const params = new URLSearchParams();
       if (filters.city) params.set('city', filters.city);
+      if (filters.state) params.set('state', filters.state);
       if (filters.status) params.set('status', filters.status);
       if (filters.priority) params.set('priority', filters.priority);
       if (filters.industry) params.set('industry', filters.industry);
       params.set('sort', 'priority');
       params.set('dir', 'desc');
-      const res = await fetch(`/api/leads?${params}`);
+      const res = await fetch(`/api/leads?${params}`, { signal: controller.signal });
       if (!res.ok) { setMatchingLeads([]); return; }
       let data: Lead[] = await res.json();
       if (!Array.isArray(data)) { setMatchingLeads([]); return; }
@@ -466,11 +471,13 @@ function RouteBuilderContent() {
         const today = new Date().toISOString().split('T')[0];
         data = data.filter(l => l.nextFollowUpDate && l.nextFollowUpDate <= today && !['Won', 'Lost', 'Not a fit'].includes(l.leadStatus));
       }
+      if (filters.serviceOpportunity) data = data.filter(l => l.serviceOpportunity === filters.serviceOpportunity);
       setMatchingLeads(data);
-    } catch {
-      setMatchingLeads([]);
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') setMatchingLeads([]);
+    } finally {
+      setLeadsLoading(false);
     }
-    setLeadsLoading(false);
   }, [filters]);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
@@ -612,20 +619,19 @@ function RouteBuilderContent() {
     if (active.length === 0) { showToast('No active stops', 'error'); return; }
     const encode = (s: string) => encodeURIComponent(s);
     const addresses = active.map(s => [s.address, s.city, s.state].filter(Boolean).join(', '));
+    const originIsFirstStop = !config.startAddress;
     const origin = config.startAddress || addresses[0];
+    const wps = (originIsFirstStop ? addresses.slice(1) : addresses).slice(0, 4);
     let url = `https://maps.apple.com/?saddr=${encode(origin)}`;
-    for (const addr of addresses.slice(0, 4)) url += `&daddr=${encode(addr)}`;
+    for (const addr of wps) url += `&daddr=${encode(addr)}`;
     url += `&dirflg=d`;
     window.open(url, '_blank');
   }
 
   // ── Stop management ───────────────────────────────────────────────────────────
   function removeStop(id: number) {
-    setStops(prev => {
-      const next = prev.filter(s => s.id !== id);
-      if (savedRouteId) fetch(`/api/routes/${savedRouteId}/stops/${id}`, { method: 'DELETE' }).catch(() => {});
-      return next.map((s, i) => ({ ...s, stopOrder: i + 1 }));
-    });
+    setStops(prev => prev.filter(s => s.id !== id).map((s, i) => ({ ...s, stopOrder: i + 1 })));
+    if (savedRouteId) fetch(`/api/routes/${savedRouteId}/stops/${id}`, { method: 'DELETE' }).catch(() => {});
   }
 
   async function toggleSkip(id: number, skipped: boolean) {

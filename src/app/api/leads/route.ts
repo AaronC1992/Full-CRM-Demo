@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status') || '';
     const priority = searchParams.get('priority') || '';
     const city = searchParams.get('city') || '';
+    const state = searchParams.get('state') || '';
     const industry = searchParams.get('industry') || '';
     const sort = searchParams.get('sort') || 'createdDate';
     const dir = searchParams.get('dir') === 'asc' ? 'ASC' : 'DESC';
@@ -41,6 +42,7 @@ export async function GET(req: NextRequest) {
       ${status ? sql`AND lead_status = ${status}` : sql``}
       ${priority ? sql`AND priority = ${priority}` : sql``}
       ${city ? sql`AND city ILIKE ${`%${city}%`}` : sql``}
+      ${state ? sql`AND state ILIKE ${`%${state}%`}` : sql``}
       ${industry ? sql`AND industry = ${industry}` : sql``}
       ORDER BY ${sql.unsafe(safeSort)} ${sql.unsafe(dir)}
       LIMIT 2000
