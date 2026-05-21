@@ -7,17 +7,10 @@ const COOKIE_NAME = 'cue_session';
 // Routes that don't require authentication
 const PUBLIC_PATHS = ['/login', '/api/auth/login'];
 
-// AUTH DISABLED FOR TESTING
-// To re-enable: delete this function and uncomment the one below
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function middleware(_req: NextRequest) {
-  return NextResponse.next();
-}
-
-/* AUTH MIDDLEWARE — uncomment to restore login protection:
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Allow public paths through
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }
@@ -32,12 +25,12 @@ export async function middleware(req: NextRequest) {
     await jwtVerify(token, JWT_SECRET);
     return NextResponse.next();
   } catch {
+    // Token invalid or expired — clear cookie and redirect
     const res = NextResponse.redirect(new URL('/login', req.url));
     res.cookies.set(COOKIE_NAME, '', { maxAge: 0, path: '/' });
     return res;
   }
 }
-*/
 
 export const config = {
   matcher: [
