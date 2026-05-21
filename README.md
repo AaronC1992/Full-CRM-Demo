@@ -1,42 +1,122 @@
 # Cue CRM
 
-**[🔗 Live App](https://crm-ten-theta-26.vercel.app)**
+A full stack CRM built with Next.js, Supabase, and Tailwind CSS. Designed for managing leads, routes, tasks, deals, demos, and outreach for a local digital marketing agency.
+
+**[Live App](https://crm-ten-theta-26.vercel.app)**
 
 ---
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Tech Stack
 
-## Getting Started
+- **Framework:** Next.js 14 (App Router)
+- **Database:** Supabase (PostgreSQL via `postgres` driver)
+- **Styling:** Tailwind CSS
+- **Auth:** Custom JWT (bcrypt + jose), httpOnly cookie
+- **AI:** OpenAI GPT-4o-mini (route planning, pitch generation, research)
+- **Maps:** Google Maps Directions API (route optimization), Google Geocoding API
 
-First, run the development server:
+---
+
+## Local Development
+
+### 1. Clone and install
+
+```bash
+git clone <repo-url>
+cd crm
+npm install
+```
+
+### 2. Set up environment variables
+
+Copy `.env.example` to `.env.local` and fill in every value:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Supabase connection string (see below) |
+| `JWT_SECRET` | Random string, minimum 32 characters |
+| `AUTH_USERNAME` | Login username for the app |
+| `AUTH_PASSWORD_HASH` | bcrypt hash of your login password |
+| `OPENAI_API_KEY` | OpenAI API key (for AI route planner and pitch generator) |
+| `GOOGLE_MAPS_API_KEY` | Google Maps API key (for geocoding and route optimization) |
+
+### 3. Generate credentials
+
+**JWT_SECRET** (run once, paste result into `.env.local`):
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+**AUTH_PASSWORD_HASH** (replace `yourpassword` with your actual password):
+```bash
+node -e "const b=require('bcryptjs');b.hash('yourpassword',12).then(console.log)"
+```
+
+### 4. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and log in with your `AUTH_USERNAME` and password.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Supabase Setup
 
-## Learn More
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Go to **Project Settings > Database > Connection string** and copy the **Session mode** URI (port 5432) or Transaction mode URI (port 6543 for serverless).
+3. Paste the URI as `DATABASE_URL` in `.env.local`.
+4. Run the schema in the Supabase SQL editor:
+   - Open **SQL Editor** in your Supabase dashboard.
+   - Paste the contents of `supabase-schema.sql` and run it.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Seed Data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+To seed sample lawn care leads for testing:
 
-## Deploy on Vercel
+```bash
+node scripts/seed-lawn-care.mjs
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To verify the seed worked:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+node scripts/verify-seed.cjs
+```
+
+---
+
+## Deployment (Vercel)
+
+1. Push your repo to GitHub.
+2. Import the project in [vercel.com](https://vercel.com).
+3. Under **Settings > Environment Variables**, add all variables from `.env.example` with production values.
+4. Deploy. Vercel builds with `npm run build` automatically.
+
+> The app uses a single-user login. There is no sign-up flow. Set `AUTH_USERNAME` and `AUTH_PASSWORD_HASH` as Vercel environment variables before your first deploy.
+
+---
+
+## Project Structure
+
+```
+src/
+  app/
+    api/          # Next.js route handlers (REST API)
+    (pages)/      # Page components (leads, routes, deals, tasks, etc.)
+  components/
+    layout/       # AppLayout, Header, Sidebar
+    ui/           # Reusable UI components
+  lib/
+    db.ts         # Supabase/postgres connection
+    types.ts      # TypeScript interfaces
+    utils.ts      # Constants and helpers
+```
+

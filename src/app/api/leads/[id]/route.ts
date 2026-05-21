@@ -29,10 +29,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const sql = getDb();
     const body = await req.json();
     const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : (body.tags || '[]');
 
     const [existing] = await sql`SELECT * FROM leads WHERE id = ${params.id}` as Record<string, unknown>[];
     if (!existing) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+
+    // Preserve existing tags if body.tags is not provided
+    const tagsValue = body.tags !== undefined
+      ? (Array.isArray(body.tags) ? JSON.stringify(body.tags) : (body.tags as string))
+      : (existing.tags as string);
 
     if (body.leadStatus && body.leadStatus !== existing.leadStatus) {
       await sql`INSERT INTO activities (lead_id, type, description) VALUES (${params.id}, 'status_change', ${`Status changed from "${existing.leadStatus}" to "${body.leadStatus}"`})`;
@@ -69,7 +73,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       marketingPackageInterest: body.marketingPackageInterest ?? existing.marketingPackageInterest,
       websitePackageInterest: body.websitePackageInterest ?? existing.websitePackageInterest,
       crmPackageInterest: body.crmPackageInterest ?? existing.crmPackageInterest,
-      tags,
+      tags: tagsValue,
       updatedDate: ts,
     };
 

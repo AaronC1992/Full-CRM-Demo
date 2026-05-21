@@ -41,16 +41,26 @@ export async function POST(req: NextRequest) {
       return [s.address, s.city, s.state].filter(Boolean).join(', ');
     };
 
+    const originIsFirstStop = !startAddress;
+    const destIsLastStop = !endAddress;
     const origin = startAddress || getStopAddress(stops[0]);
     const destination = endAddress || getStopAddress(stops[stops.length - 1]);
-    const waypoints = stops.map(getStopAddress);
+    // Exclude the first stop from waypoints if it is used as origin,
+    // and the last stop if it is used as destination, to avoid duplication.
+    const waypointStops = stops.slice(
+      originIsFirstStop ? 1 : 0,
+      destIsLastStop ? stops.length - 1 : stops.length,
+    );
+    const waypoints = waypointStops.map(getStopAddress);
 
     const avoidParam = [avoidTolls ? 'tolls' : '', avoidHighways ? 'highways' : ''].filter(Boolean).join('|');
 
     const gmUrl = new URL('https://maps.googleapis.com/maps/api/directions/json');
     gmUrl.searchParams.set('origin', origin);
     gmUrl.searchParams.set('destination', destination);
-    gmUrl.searchParams.set('waypoints', `optimize:true|${waypoints.join('|')}`);
+    if (waypoints.length > 0) {
+      gmUrl.searchParams.set('waypoints', `optimize:true|${waypoints.join('|')}`);
+    }
     gmUrl.searchParams.set('mode', travelMode.toLowerCase());
     if (avoidParam) gmUrl.searchParams.set('avoid', avoidParam);
     gmUrl.searchParams.set('key', process.env.GOOGLE_MAPS_API_KEY!);
@@ -59,15 +69,23 @@ export async function POST(req: NextRequest) {
     const gmData = await gmRes.json();
 
     if (gmData.status !== 'OK') {
-      return NextResponse.json({ error: `Google Maps API error: ${gmData.status}. ${gmData.error_message || ''}` }, { status: 400 });
+      return NextResponse.json({ error: `Google Maps API error: ${gmData.status}.` }, { status: 400 });
     }
 
     const gmRoute = gmData.routes[0];
+    // waypoint_order indexes into waypointStops (intermediate stops only)
     const optimizedOrder: number[] = gmRoute.waypoint_order || [];
-    const reorderedStops = optimizedOrder.map((origIdx: number, newOrder: number) => ({
-      ...stops[origIdx],
-      stopOrder: newOrder + 1,
-    }));
+    const reorderedMiddle = optimizedOrder.map((origIdx: number) => waypointStops[origIdx]);
+
+    // Reconstruct full ordered stop list preserving pinned first/last stops
+    const firstStop = originIsFirstStop ? stops[0] : null;
+    const lastStop = destIsLastStop ? stops[stops.length - 1] : null;
+    const fullOrdered = [
+      ...(firstStop ? [firstStop] : []),
+      ...reorderedMiddle,
+      ...(lastStop ? [lastStop] : []),
+    ];
+    const reorderedStops = fullOrdered.map((s, i) => ({ ...s, stopOrder: i + 1 }));
 
     let totalDuration = 0;
     let totalDistance = 0;
@@ -85,7 +103,8 @@ export async function POST(req: NextRequest) {
 
     const encode = (s: string) => encodeURIComponent(s);
     const BATCH_SIZE = 9;
-    const allAddresses = [origin, ...reorderedStops.map(getStopAddress), destination];
+    // Build URLs using origin + reordered intermediate stops + destination (no duplication)
+    const allAddresses = [origin, ...reorderedMiddle.map(getStopAddress), destination];
     const mapsUrls: string[] = [];
     for (let i = 0; i < allAddresses.length - 1; i += BATCH_SIZE + 1) {
       const batch = allAddresses.slice(i, i + BATCH_SIZE + 2);

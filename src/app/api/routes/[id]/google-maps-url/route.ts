@@ -12,9 +12,14 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     const encode = (s: string) => encodeURIComponent(s);
     const stopAddresses = stops.map(s => [s.address, s.city, s.state].filter(Boolean).join(', '));
-    const origin = (route.startAddress as string) || stopAddresses[0];
-    const destination = (route.endAddress as string) || stopAddresses[stopAddresses.length - 1];
-    const waypoints = stopAddresses.slice(0, -1);
+    const customStart = (route.startAddress as string) || '';
+    const customEnd = (route.endAddress as string) || '';
+    const origin = customStart || stopAddresses[0];
+    const destination = customEnd || stopAddresses[stopAddresses.length - 1];
+    // Exclude first stop from waypoints if it is used as origin, last stop if used as destination
+    const wpsStart = !customStart ? 1 : 0;
+    const wpsEnd = !customEnd ? stopAddresses.length - 1 : stopAddresses.length;
+    const waypoints = stopAddresses.slice(wpsStart, wpsEnd);
     const BATCH_SIZE = 9;
     const urls: string[] = [];
 
@@ -22,8 +27,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       const wp = waypoints.map(encode).join('|');
       urls.push(`https://www.google.com/maps/dir/?api=1&origin=${encode(origin)}&destination=${encode(destination)}${wp ? `&waypoints=${wp}` : ''}&travelmode=driving`);
     } else {
-      for (let i = 0; i < stopAddresses.length; i += BATCH_SIZE + 1) {
-        const batch = stopAddresses.slice(i, i + BATCH_SIZE + 2);
+      // For large routes, batch segments using the corrected waypoints list
+      const allSegmentAddresses = [origin, ...waypoints, destination];
+      for (let i = 0; i < allSegmentAddresses.length - 1; i += BATCH_SIZE + 1) {
+        const batch = allSegmentAddresses.slice(i, i + BATCH_SIZE + 2);
         const bOrigin = batch[0];
         const bDest = batch[batch.length - 1];
         const bWp = batch.slice(1, -1).map(encode).join('|');

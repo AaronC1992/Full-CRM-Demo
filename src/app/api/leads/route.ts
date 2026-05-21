@@ -47,11 +47,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json((rows as Record<string, unknown>[]).map(parseLead));
   } catch (err) {
     console.error(err);
-    return NextResponse.json({
-      error: 'Failed to fetch leads',
-      details: String(err),
-      stack: err instanceof Error ? err.stack : undefined,
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
   }
 }
 

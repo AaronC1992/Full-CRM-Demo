@@ -2,11 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 const COOKIE_NAME = 'cue_session';
 
+// ── Simple in-memory rate limiter ─────────────────────────────────────────────
+// Note: resets per serverless instance; provides basic brute-force protection.
+const MAX_ATTEMPTS = 10;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = loginAttempts.get(ip);
+  if (!record || now > record.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return false;
+  }
+  if (record.count >= MAX_ATTEMPTS) return true;
+  record.count++;
+  return false;
+}
+
 export async function POST(req: NextRequest) {
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown';
+
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: 'Too many login attempts. Try again later.' }, { status: 429 });
+  }
+
   try {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.length < 32) {
+      console.error('JWT_SECRET is missing or too short (minimum 32 characters)');
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
+
     const { username, password } = await req.json();
 
     const validUsername = process.env.AUTH_USERNAME;
@@ -24,6 +56,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
     }
 
+    const JWT_SECRET = new TextEncoder().encode(jwtSecret);
     const token = await new SignJWT({ sub: username })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()

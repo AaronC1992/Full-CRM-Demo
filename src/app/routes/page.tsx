@@ -239,7 +239,7 @@ function StopCard({ stop, index, routeId, onRemove, onSkip, onMarkVisited, onMov
                 <input className={inp} value={editFollowUp} onChange={e => setEditFollowUp(e.target.value)} />
               </div>
               <div className="flex gap-2 pt-1">
-                <button disabled={editSaving} onClick={async () => {
+                <button disabled={!routeId || editSaving} onClick={async () => {
                   if (!routeId) return;
                   setEditSaving(true);
                   const talkingPoints = editTalkingPoints.split('\n').map(t => t.trim()).filter(Boolean);
@@ -309,8 +309,10 @@ function StopCard({ stop, index, routeId, onRemove, onSkip, onMarkVisited, onMov
                 <p className="text-sm text-gray-500 italic">Skipped: {stop.skipReason}</p>
               )}
               <div className="pt-1">
-                <button onClick={() => setEditing(true)}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-50 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-100 font-medium">
+                <button onClick={() => routeId && setEditing(true)}
+                  disabled={!routeId}
+                  title={!routeId ? 'Save route first' : undefined}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-50 text-gray-600 border border-gray-200 rounded-lg font-medium ${routeId ? 'hover:bg-gray-100' : 'opacity-40 cursor-not-allowed'}`}>
                   <Edit3 size={12} />Edit Details
                 </button>
               </div>
@@ -361,8 +363,11 @@ function StopCard({ stop, index, routeId, onRemove, onSkip, onMarkVisited, onMov
 
         {/* Mark visited */}
         {!stop.skipped && (
-          <button onClick={() => onMarkVisited(stop)}
-            className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium ${stop.visitCompleted ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-green-600 text-white hover:bg-green-700'}`}>
+          <button
+            onClick={() => { if (routeId) onMarkVisited(stop); }}
+            disabled={!routeId}
+            title={!routeId ? 'Save route first' : undefined}
+            className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium ${!routeId ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : stop.visitCompleted ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-green-600 text-white hover:bg-green-700'}`}>
             <CheckCircle2 size={11} />{stop.visitCompleted ? 'Edit Visit' : 'Mark Visited'}
           </button>
         )}
@@ -503,7 +508,12 @@ function RouteBuilderContent() {
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Build failed', 'error'); return; }
-      setStops(data.stops || []);
+      // Assign temporary negative IDs to unsaved stops so keys/lookups are stable
+      const stopsWithTempIds = (data.stops || []).map((s: RouteStop, i: number) => ({
+        ...s,
+        id: s.id ?? -(i + 1),
+      }));
+      setStops(stopsWithTempIds);
       setAiPlan(data.aiPlan);
       setLeadsWithoutAddress(data.leadsWithoutAddress || []);
       setSavedRouteId(null);
@@ -558,6 +568,8 @@ function RouteBuilderContent() {
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Save failed', 'error'); return; }
       setSavedRouteId(data.id);
+      // Replace temp-ID stops with real DB stops returned by the server
+      if (Array.isArray(data.stops)) setStops(data.stops);
       showToast('Route saved!', 'success');
     } catch {
       showToast('Failed to save route', 'error');
@@ -578,9 +590,14 @@ function RouteBuilderContent() {
       if (active.length === 0) { showToast('No active stops', 'error'); return; }
       const encode = (s: string) => encodeURIComponent(s);
       const addresses = active.map(s => [s.address, s.city, s.state].filter(Boolean).join(', '));
+      const originIsFirstStop = !config.startAddress;
+      const destIsLastStop = !config.endAddress;
       const origin = config.startAddress || addresses[0];
       const dest = config.endAddress || addresses[addresses.length - 1];
-      const wps = addresses.slice(0, -1);
+      // Exclude first stop from waypoints if it is the origin, and last stop if it is the destination
+      const wpsStart = originIsFirstStop ? 1 : 0;
+      const wpsEnd = destIsLastStop ? addresses.length - 1 : addresses.length;
+      const wps = addresses.slice(wpsStart, wpsEnd);
       const url = `https://www.google.com/maps/dir/?api=1&origin=${encode(origin)}&destination=${encode(dest)}${wps.length > 0 ? `&waypoints=${wps.map(encode).join('|')}` : ''}&travelmode=driving`;
       setMapsUrls([url]);
       window.open(url, '_blank');
