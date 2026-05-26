@@ -1,10 +1,11 @@
 # Full CRM Demo
 
-## Try Full CRM Demo
+## Run From GitHub (Local Only)
 
-**[Try Full CRM Demo](https://crm-ten-theta-26.vercel.app/dashboard)**
+This project is intended to run locally after cloning from GitHub.
+There is no required Vercel deployment and no required Supabase dependency.
 
-A full stack CRM demo built with Next.js and Tailwind CSS. This repository is configured to run locally from GitHub with local PostgreSQL and no dependency on Vercel or Supabase.
+A full stack CRM demo built with Next.js and Tailwind CSS. This repository is configured to run locally from GitHub with local PostgreSQL only.
 
 ---
 
