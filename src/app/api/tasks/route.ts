@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import getDb, { isNoDbMode } from '@/lib/db';
+import { getMockTasks } from '@/lib/mock-tasks';
 
 export async function GET(req: NextRequest) {
   try {
-    const sql = getDb();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const leadIdRaw = searchParams.get('leadId');
@@ -12,6 +12,12 @@ export async function GET(req: NextRequest) {
     if (leadIdRaw && (!Number.isFinite(leadId) || leadId! <= 0)) {
       return NextResponse.json({ error: 'Invalid leadId' }, { status: 400 });
     }
+
+    if (isNoDbMode) {
+      return NextResponse.json(getMockTasks(status || undefined, leadId));
+    }
+
+    const sql = getDb();
 
     const tasks = await sql`
       SELECT t.*, l.business_name as lead_name
@@ -31,9 +37,26 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const sql = getDb();
     const body = await req.json();
     const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    if (isNoDbMode) {
+      const task = {
+        id: Date.now(),
+        title: body.title || 'New Task',
+        leadId: body.leadId ?? null,
+        dueDate: body.dueDate || new Date().toISOString().slice(0, 10),
+        taskType: body.taskType || 'Follow up',
+        priority: body.priority || 'Normal',
+        status: body.status || 'pending',
+        notes: body.notes || '',
+        createdDate: ts,
+        updatedDate: ts,
+      };
+      return NextResponse.json(task, { status: 201 });
+    }
+
+    const sql = getDb();
     const data = {
       title: body.title || '',
       leadId: body.leadId ?? null,
