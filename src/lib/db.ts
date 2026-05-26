@@ -5,10 +5,72 @@ const fromCamel = (s: string) => s.replace(/([A-Z])/g, (c) => `_${c.toLowerCase(
 
 let _sql: ReturnType<typeof postgres> | undefined;
 
+type SqlTag = ReturnType<typeof postgres>;
+
+const DEMO_NO_DB_MODE = process.env.DEMO_NO_DB === 'true' || !process.env.DATABASE_URL;
+
+function buildMockAggregateRow(query: string) {
+  const aggregateRegex = /(?:count|sum|max|min|avg)\s*\([^)]*\)\s+as\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi;
+  const aliases = [...query.matchAll(aggregateRegex)].map((m) => m[1]);
+  if (aliases.length === 0) return null;
+
+  return aliases.reduce<Record<string, number>>((acc, alias) => {
+    acc[alias] = 0;
+    return acc;
+  }, {});
+}
+
+function createMockSql(): SqlTag {
+  const mock = (async (strings: TemplateStringsArray, ...values: unknown[]) => {
+    const query = strings.reduce((acc, part, i) => {
+      const v = i < values.length ? String(values[i]) : '';
+      return acc + part + v;
+    }, '').trim().toLowerCase();
+
+    if (query.startsWith('select')) {
+      if (query.includes(' as v')) {
+        return [{ v: 0 }] as unknown[];
+      }
+      if (query.includes(' as c')) {
+        return [{ c: 0 }] as unknown[];
+      }
+
+      const aggregateRow = buildMockAggregateRow(query);
+      if (aggregateRow) {
+        return [aggregateRow] as unknown[];
+      }
+      return [] as unknown[];
+    }
+
+    if (query.startsWith('insert')) {
+      if (query.includes('returning')) {
+        return [{ id: Date.now() }] as unknown[];
+      }
+      return [] as unknown[];
+    }
+
+    if (query.startsWith('update') || query.startsWith('delete')) {
+      if (query.includes('returning')) {
+        return [{}] as unknown[];
+      }
+      return [] as unknown[];
+    }
+
+    return [] as unknown[];
+  }) as unknown as SqlTag;
+
+  (mock as unknown as { unsafe: (value: string) => string }).unsafe = (value: string) => value;
+  (mock as unknown as { begin: <T>(fn: (tx: SqlTag) => Promise<T>) => Promise<T> }).begin = async <T>(
+    fn: (tx: SqlTag) => Promise<T>
+  ) => fn(mock);
+
+  return mock;
+}
+
 function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
   if (!url) {
-    throw new Error('DATABASE_URL is required');
+    throw new Error('DATABASE_URL is required unless DEMO_NO_DB=true');
   }
   return url;
 }
@@ -37,6 +99,10 @@ function assertDatabasePolicy(databaseUrl: string) {
 }
 
 function getDb() {
+  if (DEMO_NO_DB_MODE) {
+    return createMockSql();
+  }
+
   if (!_sql) {
     const databaseUrl = getDatabaseUrl();
     assertDatabasePolicy(databaseUrl);
