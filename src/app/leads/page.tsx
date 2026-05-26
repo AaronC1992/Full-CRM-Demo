@@ -116,8 +116,9 @@ function LeadsContent() {
     if (filterIndustry) params.set('industry', filterIndustry);
     params.set('sort', sort);
     params.set('dir', dir);
+    params.set('_ts', Date.now().toString());
     try {
-      const res = await fetch(`/api/leads?${params}`);
+      const res = await fetch(`/api/leads?${params}`, { cache: 'no-store' });
       const data = await res.json();
       const arr = Array.isArray(data) ? data : [];
       setLeads(arr);

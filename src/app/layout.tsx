@@ -7,7 +7,7 @@ import { DemoModeProvider } from "@/components/demo/DemoModeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Cue CRM | Universal Demo Platform",
+  title: "Full CRM Demo | Universal Demo Platform",
   description: "Premium CRM demo platform for local businesses.",
 };
 

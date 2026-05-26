@@ -39,9 +39,9 @@ export default function LoginPage() {
         {/* Logo / Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 mb-4">
-            <span className="text-white text-2xl font-bold">C</span>
+            <span className="text-white text-2xl font-bold">F</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Cue CRM</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Full CRM Demo</h1>
           <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
         </div>
 

@@ -70,7 +70,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <div>
             <div className="flex items-center gap-2">
               <BarChart3 className="text-blue-400" size={22} />
-              <span className="font-bold text-white text-base leading-tight">Cue CRM</span>
+              <span className="font-bold text-white text-base leading-tight">Full CRM Demo</span>
             </div>
             <p className="text-slate-400 text-xs mt-0.5">Universal demo platform</p>
             <p className="text-blue-300 text-[11px] mt-1">{industryOption.shortLabel} profile</p>

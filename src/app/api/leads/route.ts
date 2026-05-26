@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/db';
 import { Lead } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 function parseLead(row: Record<string, unknown>): Lead {
   return {
     ...row,
