@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import { Save } from 'lucide-react';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
+import { INDUSTRY_OPTIONS } from '@/lib/demo-mode';
 
 const SETTINGS_FIELDS = [
   { key: 'businessName', label: 'Business Name', placeholder: 'Cue Marketing Solutions', type: 'text' },
@@ -22,6 +24,13 @@ const TEXTAREA_FIELDS = [
 ];
 
 export default function SettingsPage() {
+  const {
+    industry,
+    setIndustry,
+    enabledModules,
+    setModuleEnabled,
+    moduleDefinitions,
+  } = useDemoMode();
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,6 +110,49 @@ export default function SettingsPage() {
           <p>Joplin, Webb City, Carthage, Neosho, Carl Junction, Pittsburg MO</p>
           <p className="mt-2 font-semibold">Contact</p>
           <p>info@cuemarketingsolutions.com · 918 808 0074</p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 className="font-semibold text-gray-800 mb-4">Demo Profile Settings</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Business Type</label>
+              <select
+                className={inp}
+                value={industry}
+                onChange={(event) => setIndustry(event.target.value as typeof industry)}
+              >
+                {INDUSTRY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Brand Colors</label>
+              <div className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-500 bg-gray-50">
+                Demo branding is simulated for each client package.
+              </div>
+            </div>
+          </div>
+
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Enabled Modules</h3>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-2">
+            {moduleDefinitions.map((module) => (
+              <label key={module.key} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={enabledModules[module.key]}
+                  onChange={(event) => setModuleEnabled(module.key, event.target.checked)}
+                />
+                {module.label}
+              </label>
+            ))}
+          </div>
+
+          <div className="mt-4 text-xs text-gray-500">
+            Team members, custom fields, pipeline stages, and service types can be tuned per client during implementation.
+          </div>
         </div>
 
         <div className="pb-4">

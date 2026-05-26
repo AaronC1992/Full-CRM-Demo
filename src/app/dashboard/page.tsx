@@ -9,6 +9,7 @@ import {
   Users, TrendingUp, Star, AlertCircle, CheckCircle2,
   XCircle, PhoneCall, Send, Calendar, DollarSign, Flame, Clock, MapPin
 } from 'lucide-react';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
 
 function StatCard({ label, value, icon: Icon, color, sub }: {
   label: string; value: number | string; icon: React.ElementType;
@@ -31,6 +32,7 @@ function StatCard({ label, value, icon: Icon, color, sub }: {
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const { profile, industryOption } = useDemoMode();
 
   useEffect(() => {
     fetch('/api/dashboard')
@@ -55,6 +57,39 @@ export default function DashboardPage() {
     <AppLayout title="Dashboard">
       <div className="space-y-6">
 
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-xl p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-blue-300">Active demo profile</p>
+              <h2 className="text-xl font-semibold mt-1">{industryOption.label}</h2>
+              <p className="text-sm text-slate-200 mt-1">{profile.headline}</p>
+            </div>
+            <Link href="/feature-builder" className="text-xs font-semibold text-blue-200 hover:text-white underline">
+              Configure modules
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+            {profile.dashboardCards.map((card) => (
+              <div key={card.label} className="bg-white/10 border border-white/10 rounded-lg p-3">
+                <p className="text-xs text-slate-300">{card.label}</p>
+                <p className="text-xl font-bold mt-0.5">{typeof card.value === 'number' ? card.value.toLocaleString() : card.value}</p>
+                <p className="text-xs text-emerald-300 mt-1">{card.trend}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <h3 className="font-semibold text-gray-800 text-sm">Sample workflows for this industry</h3>
+          <div className="grid sm:grid-cols-3 gap-2 mt-3">
+            {profile.workflowExamples.map((workflow) => (
+              <div key={workflow} className="text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                {workflow}
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Follow-up alert */}
         {stats.followUpDueToday > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -78,6 +113,30 @@ export default function DashboardPage() {
           <StatCard label="Follow Up Due" value={stats.followUpDueToday} icon={Clock} color="bg-amber-500" />
           <StatCard label="Won Deals" value={stats.wonDeals} icon={CheckCircle2} color="bg-green-500" />
           <StatCard label="Lost Deals" value={stats.lostDeals} icon={XCircle} color="bg-red-400" />
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <h3 className="font-semibold text-gray-800 text-sm">Universal KPI view</h3>
+          <p className="text-xs text-gray-500 mt-1">Premium demo metrics for discovery calls and package scoping.</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3 mt-3">
+            {[
+              { label: 'Revenue', value: formatCurrency(stats.wonThisMonthValue + stats.monthlyEstimatedValue) },
+              { label: 'Leads', value: stats.totalLeads },
+              { label: profile.customerLabel, value: stats.wonDeals + 47 },
+              { label: `Open ${profile.jobLabel}`, value: stats.contactedLeads + 8 },
+              { label: 'Pending estimates', value: stats.interestedLeads + 4 },
+              { label: 'Follow ups', value: stats.followUpDueToday },
+              { label: 'Appointments', value: stats.upcomingFollowUps.length + 6 },
+              { label: 'Tasks', value: stats.upcomingFollowUps.length + stats.followUpDueToday },
+              { label: 'Reviews', value: stats.demoSentLeads + 3 },
+              { label: 'Recent activity', value: stats.recentActivity.length },
+            ].map((item) => (
+              <div key={item.label} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <p className="text-[11px] uppercase tracking-wide text-gray-500">{item.label}</p>
+                <p className="text-base font-semibold text-gray-800 mt-1">{item.value}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Route Stats */}

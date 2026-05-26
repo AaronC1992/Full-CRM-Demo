@@ -2,25 +2,39 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Users, PlusCircle, Globe, Handshake,
-  CheckSquare, FileDown, Settings, Package, Sparkles,
-  MessageSquare, X, BarChart3, MapPin, CalendarDays, UserCheck
+  LayoutDashboard, Users, Handshake,
+  CheckSquare, Settings, Sparkles,
+  MessageSquare, X, BarChart3, MapPin, CalendarDays, UserCheck,
+  ClipboardList, ReceiptText, FileText, Megaphone, Star, LineChart, Blocks, Layers
 } from 'lucide-react';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
+import { DemoModuleKey } from '@/lib/demo-mode';
 
-const nav = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  module?: DemoModuleKey;
+};
+
+const MAIN_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/customers', label: 'Customers', icon: UserCheck, module: 'customers' },
   { href: '/leads', label: 'Leads', icon: Users },
-  { href: '/customers', label: 'Customers', icon: UserCheck },
-  { href: '/leads/add', label: 'Add Lead', icon: PlusCircle },
-  { href: '/routes', label: 'Route Builder', icon: MapPin },
-  { href: '/deals', label: 'Deals', icon: Handshake },
-  { href: '/demos', label: 'Demo Tracker', icon: Globe },
-  { href: '/tasks', label: 'Tasks & Follow Ups', icon: CheckSquare },
-  { href: '/tasks?view=calendar', label: 'Calendar', icon: CalendarDays },
-  { href: '/outreach', label: 'Outreach Templates', icon: MessageSquare },
-  { href: '/import-export', label: 'Import / Export', icon: FileDown },
-  { href: '/packages', label: 'Packages', icon: Package },
-  { href: '/ai-helper', label: 'AI Helper', icon: Sparkles },
+  { href: '/pipeline', label: 'Pipeline', icon: Handshake, module: 'lead-pipeline' },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'scheduling' },
+  { href: '/jobs', label: 'Jobs or Projects', icon: ClipboardList, module: 'job-tracking' },
+  { href: '/estimates', label: 'Estimates', icon: FileText, module: 'estimates' },
+  { href: '/invoices', label: 'Invoices', icon: ReceiptText, module: 'invoices' },
+  { href: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { href: '/routes', label: 'Routes', icon: MapPin, module: 'route-builder' },
+  { href: '/marketing', label: 'Marketing', icon: Megaphone, module: 'marketing-dashboard' },
+  { href: '/reviews', label: 'Reviews', icon: Star, module: 'review-requests' },
+  { href: '/reports', label: 'Reports', icon: LineChart, module: 'reports' },
+  { href: '/ai-helper', label: 'AI Assistant', icon: Sparkles, module: 'ai-assistant' },
+  { href: '/customer-portal', label: 'Customer Portal', icon: Layers, module: 'customer-portal' },
+  { href: '/feature-builder', label: 'Feature Builder', icon: Blocks },
+  { href: '/package-builder', label: 'Package Builder', icon: MessageSquare },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -31,6 +45,8 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { enabledModules, industryOption } = useDemoMode();
+  const nav = MAIN_NAV.filter((item) => !item.module || enabledModules[item.module]);
 
   return (
     <>
@@ -56,7 +72,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               <BarChart3 className="text-blue-400" size={22} />
               <span className="font-bold text-white text-base leading-tight">Cue CRM</span>
             </div>
-            <p className="text-slate-400 text-xs mt-0.5">Cue Marketing Solutions</p>
+            <p className="text-slate-400 text-xs mt-0.5">Universal demo platform</p>
+            <p className="text-blue-300 text-[11px] mt-1">{industryOption.shortLabel} profile</p>
           </div>
           <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-white p-1">
             <X size={18} />
@@ -90,8 +107,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-slate-700">
-          <p className="text-slate-500 text-xs">Aaron Cue</p>
-          <p className="text-slate-600 text-xs">918 808 0074</p>
+          <p className="text-slate-500 text-xs">Demo data is simulated</p>
+          <p className="text-slate-600 text-xs">No live billing or messaging</p>
         </div>
       </aside>
     </>

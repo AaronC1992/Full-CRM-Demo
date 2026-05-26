@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastContainer } from "@/components/ui/Toast";
+import { DemoModeProvider } from "@/components/demo/DemoModeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Cue CRM — Cue Marketing Solutions",
-  description: "Sales CRM for Cue Marketing Solutions",
+  title: "Cue CRM | Universal Demo Platform",
+  description: "Premium CRM demo platform for local businesses.",
 };
 
 export default function RootLayout({
@@ -18,8 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased bg-gray-50`}>
-        {children}
-        <ToastContainer />
+        <DemoModeProvider>
+          {children}
+          <ToastContainer />
+        </DemoModeProvider>
       </body>
     </html>
   );

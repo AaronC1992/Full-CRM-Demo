@@ -4,6 +4,7 @@ import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import { Sparkles, RefreshCw, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
 
 interface LeadSnapshot {
   businessName: string;
@@ -48,6 +49,7 @@ const SERVICES_OPTIONS = [
 ];
 
 export default function AIHelperPage() {
+  const { industryOption } = useDemoMode();
   const [mode, setMode] = useState<'pitch' | 'research'>('pitch');
   const [lead, setLead] = useState<LeadSnapshot>(EMPTY);
   const [pitchResult, setPitchResult] = useState('');
@@ -59,6 +61,26 @@ export default function AIHelperPage() {
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchError, setResearchError] = useState('');
   const [researchResult, setResearchResult] = useState<{ count: number; leads: ResearchedLead[] } | null>(null);
+  const [assistantResult, setAssistantResult] = useState('');
+
+  function buildAssistantMock(action: string): string {
+    switch (action) {
+      case 'summarize-customer':
+        return `Customer summary\nProfile: ${industryOption.shortLabel} account with high close potential.\nOpen work: 2 tasks and 1 pending estimate.\nRisk: Follow up timing is inconsistent.\nOpportunity: Upsell reporting and review automation.`;
+      case 'write-followup':
+        return 'Hi there, quick follow up from the Cue CRM team. We prepared a custom workflow that can help you respond faster and close more jobs. Would you like a short walkthrough this week?';
+      case 'next-action':
+        return 'Suggested next action: book a 20 minute discovery call, confirm budget range, and send estimate option A with a 48 hour reminder task.';
+      case 'quote-message':
+        return 'Thanks for your request. Based on your goals, we recommend the Growth package with CRM, scheduling, and reporting. Setup starts at $2,500 with monthly service from $349.';
+      case 'social-post':
+        return 'Local business spotlight: we helped a nearby team improve follow up speed and increase booked appointments in 30 days. Message us for a live demo of the workflow.';
+      case 'upsells':
+        return 'Upsell ideas: review request automation, reactivation campaign, customer portal, and monthly performance brief.';
+      default:
+        return 'Monthly performance summary: lead volume up 18 percent, conversion up 6 points, and response time down by 21 percent.';
+    }
+  }
 
   const inp = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
 
@@ -71,7 +93,14 @@ export default function AIHelperPage() {
         body: JSON.stringify(lead),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed');
+      if (!res.ok) {
+        if (res.status === 503) {
+          setPitchResult(buildAssistantMock('quote-message'));
+          showToast('Using demo AI response because no API key is configured.', 'info');
+          return;
+        }
+        throw new Error(data.error ?? 'Failed');
+      }
       setPitchResult(data.result);
     } catch (e: unknown) {
       setPitchError(e instanceof Error ? e.message : 'Something went wrong');
@@ -88,7 +117,25 @@ export default function AIHelperPage() {
         body: JSON.stringify({ city: researchCity, industry: researchIndustry, count: researchCount }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed');
+      if (!res.ok) {
+        if (res.status === 503) {
+          const mockLeads: ResearchedLead[] = Array.from({ length: researchCount }).map((_, idx) => ({
+            id: idx + 1,
+            businessName: `${researchIndustry || 'Local'} Prospect ${idx + 1}`,
+            city: researchCity,
+            industry: researchIndustry || industryOption.shortLabel,
+            hasWebsite: idx % 2 === 0 ? 'No' : 'Yes',
+            website: idx % 2 === 0 ? '' : `https://sample${idx + 1}.com`,
+            serviceOpportunity: 'CRM and follow up automation',
+            estimatedDealValue: 1500 + idx * 300,
+            priority: idx % 3 === 0 ? 'Hot' : 'Warm',
+          }));
+          setResearchResult({ count: mockLeads.length, leads: mockLeads });
+          showToast('Using demo lead research results because no API key is configured.', 'info');
+          return;
+        }
+        throw new Error(data.error ?? 'Failed');
+      }
       setResearchResult(data);
       showToast(`${data.count} leads added to your CRM!`, 'success');
     } catch (e: unknown) {
@@ -99,6 +146,36 @@ export default function AIHelperPage() {
   return (
     <AppLayout title="AI Helper">
       <div className="max-w-4xl space-y-6">
+
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 className="font-semibold text-gray-800">AI Assistant Actions</h2>
+          <p className="text-sm text-gray-500 mt-1">Use quick actions for sales demos, even when no API key is configured.</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3">
+            {[
+              ['summarize-customer', 'Summarize customer'],
+              ['write-followup', 'Write follow up'],
+              ['next-action', 'Suggest next action'],
+              ['quote-message', 'Create quote message'],
+              ['social-post', 'Generate social post'],
+              ['upsells', 'Suggest upsells'],
+              ['monthly-performance', 'Summarize monthly performance'],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setAssistantResult(buildAssistantMock(key))}
+                className="text-left px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-200 text-sm text-gray-700"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {assistantResult && (
+            <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 border border-gray-200 rounded-lg p-3">
+              {assistantResult}
+            </div>
+          )}
+        </div>
 
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 flex items-start gap-3">
           <Sparkles size={20} className="text-indigo-600 mt-0.5 shrink-0" />
