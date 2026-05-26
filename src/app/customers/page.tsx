@@ -12,7 +12,7 @@ import {
   ChevronUp, ChevronDown, Columns2, UserX
 } from 'lucide-react';
 
-const CUSTOMERS_COLS_KEY = 'cuecrm_customers_cols';
+const CUSTOMERS_COLS_KEY = 'fullcrmdemo_customers_cols';
 
 const ALL_CUSTOMERS_COLS: ColDef[] = [
   { key: 'contact', label: 'Contact' },

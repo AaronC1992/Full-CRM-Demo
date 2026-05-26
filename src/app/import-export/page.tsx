@@ -35,9 +35,9 @@ const JSON_SAMPLE = JSON.stringify([{
   tags: ["website", "seo", "joplin"]
 }], null, 2);
 
-const CHATGPT_PROMPT_TEMPLATE = `You are a marketing research assistant for Cue Marketing Solutions, a digital marketing agency serving Joplin MO and surrounding areas (Webb City, Carthage, Neosho, Carl Junction, Pittsburg MO).
+const CHATGPT_PROMPT_TEMPLATE = `You are a marketing research assistant for Full CRM Demo, a configurable CRM demo platform for local businesses.
 
-The owner is Aaron Cue (info@cuemarketingsolutions.com, 918 808 0074).
+Use generic demo contact details and avoid real personal information.
 
 Services offered:
 - Website design/redesign ($997–$2997+)

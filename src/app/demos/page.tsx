@@ -118,7 +118,7 @@ export default function DemosPage() {
       industry: '',
       myName: 'Aaron',
       myPhone: '918 808 0074',
-      myEmail: 'info@cuemarketingsolutions.com',
+      myEmail: 'hello@fullcrmdemo.com',
       serviceOffer: 'our services',
       websiteIssue: '',
     };
@@ -313,7 +313,7 @@ export default function DemosPage() {
                 className={inp}
                 value={editDemo.demoUrl || ''}
                 onChange={e => setEditDemo(p => ({ ...p, demoUrl: e.target.value }))}
-                placeholder="https://demo.cuemarketingsolutions.com/..."
+                placeholder="https://demo.fullcrmdemo.com/..."
               />
             </div>
           </div>

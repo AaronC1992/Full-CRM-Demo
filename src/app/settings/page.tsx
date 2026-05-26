@@ -7,9 +7,9 @@ import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { INDUSTRY_OPTIONS } from '@/lib/demo-mode';
 
 const SETTINGS_FIELDS = [
-  { key: 'businessName', label: 'Business Name', placeholder: 'Cue Marketing Solutions', type: 'text' },
+  { key: 'businessName', label: 'Business Name', placeholder: 'Full CRM Demo', type: 'text' },
   { key: 'ownerName', label: 'Owner Name', placeholder: 'Aaron Cue', type: 'text' },
-  { key: 'email', label: 'Email', placeholder: 'info@cuemarketingsolutions.com', type: 'email' },
+  { key: 'email', label: 'Email', placeholder: 'hello@fullcrmdemo.com', type: 'email' },
   { key: 'phone', label: 'Phone', placeholder: '918 808 0074', type: 'text' },
   { key: 'defaultCity', label: 'Default City', placeholder: 'Joplin', type: 'text' },
   { key: 'defaultState', label: 'Default State', placeholder: 'MO', type: 'text' },
@@ -20,7 +20,7 @@ const SETTINGS_FIELDS = [
 
 const TEXTAREA_FIELDS = [
   { key: 'defaultServices', label: 'Default Services Offered', placeholder: 'Website design, Local SEO, Social media management...' },
-  { key: 'defaultSignature', label: 'Default Email Signature', placeholder: 'Aaron Cue\nCue Marketing Solutions\n918 808 0074\ninfo@cuemarketingsolutions.com' },
+  { key: 'defaultSignature', label: 'Default Email Signature', placeholder: 'Jordan Parker\nFull CRM Demo\n555 010 2244\nhello@fullcrmdemo.com' },
 ];
 
 export default function SettingsPage() {
@@ -109,7 +109,7 @@ export default function SettingsPage() {
           <p className="font-semibold mb-1">Service Area</p>
           <p>Joplin, Webb City, Carthage, Neosho, Carl Junction, Pittsburg MO</p>
           <p className="mt-2 font-semibold">Contact</p>
-          <p>info@cuemarketingsolutions.com · 918 808 0074</p>
+          <p>hello@fullcrmdemo.com · 555 010 2244</p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">

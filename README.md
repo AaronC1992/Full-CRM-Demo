@@ -1,4 +1,4 @@
-# Cue CRM
+# Full CRM Demo
 
 ## Try CRM Now
 

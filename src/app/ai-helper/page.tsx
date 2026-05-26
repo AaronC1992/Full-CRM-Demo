@@ -68,7 +68,7 @@ export default function AIHelperPage() {
       case 'summarize-customer':
         return `Customer summary\nProfile: ${industryOption.shortLabel} account with high close potential.\nOpen work: 2 tasks and 1 pending estimate.\nRisk: Follow up timing is inconsistent.\nOpportunity: Upsell reporting and review automation.`;
       case 'write-followup':
-        return 'Hi there, quick follow up from the Cue CRM team. We prepared a custom workflow that can help you respond faster and close more jobs. Would you like a short walkthrough this week?';
+        return 'Hi there, quick follow up from the Full CRM Demo team. We prepared a custom workflow that can help you respond faster and close more jobs. Would you like a short walkthrough this week?';
       case 'next-action':
         return 'Suggested next action: book a 20 minute discovery call, confirm budget range, and send estimate option A with a 48 hour reminder task.';
       case 'quote-message':

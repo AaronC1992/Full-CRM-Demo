@@ -223,7 +223,7 @@ export default function LeadDetailPage() {
     serviceOffer: lead.suggestedOffer || lead.serviceOpportunity || 'our services',
     myName: 'Aaron',
     myPhone: '918 808 0074',
-    myEmail: 'info@cuemarketingsolutions.com',
+    myEmail: 'hello@fullcrmdemo.com',
   });
 
   const copyTemplate = (templateType: string) => {
@@ -911,7 +911,7 @@ export default function LeadDetailPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Demo URL (if already started)</label>
-              <input className={inputCls} value={newDemo.demoUrl || ''} onChange={e => setNewDemo(p => ({ ...p, demoUrl: e.target.value }))} placeholder="https://demo.cuemarketingsolutions.com/..." />
+              <input className={inputCls} value={newDemo.demoUrl || ''} onChange={e => setNewDemo(p => ({ ...p, demoUrl: e.target.value }))} placeholder="https://demo.fullcrmdemo.com/..." />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

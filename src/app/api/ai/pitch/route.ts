@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const userPrompt = `You are a digital marketing sales consultant for Cue Marketing Solutions in Joplin, MO.
+    const userPrompt = `You are a digital marketing sales consultant for Full CRM Demo, a configurable CRM and growth platform.
 
 Business: ${businessName || '[Business Name]'}
 City: ${city || 'Joplin'}

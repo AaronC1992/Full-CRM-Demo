@@ -14,8 +14,8 @@ import {
   Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square, UserCheck, Columns2
 } from 'lucide-react';
 
-const LEADS_CACHE_KEY = 'cuecrm_leads_cache';
-const LEADS_COLS_KEY = 'cuecrm_leads_cols';
+const LEADS_CACHE_KEY = 'fullcrmdemo_leads_cache';
+const LEADS_COLS_KEY = 'fullcrmdemo_leads_cols';
 
 const ALL_LEADS_COLS: ColDef[] = [
   { key: 'contact', label: 'Contact' },

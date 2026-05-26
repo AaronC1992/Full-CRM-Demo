@@ -72,9 +72,9 @@ export async function POST(req: NextRequest) {
     }));
 
     const maxStops = Number(config.maxStops || 10);
-    const routeGoal = config.routeGoal || 'Visit local businesses and introduce Cue Marketing Solutions services';
+    const routeGoal = config.routeGoal || 'Visit local businesses and introduce Full CRM Demo services';
 
-    const systemPrompt = `You are a sales route planner for Cue Marketing Solutions, a digital marketing agency in Joplin, MO that sells websites, local SEO, social media management, and custom CRMs to small local businesses.\n\nAnalyze the provided leads and create an optimized visit plan. Return ONLY valid JSON — no markdown, no explanation.`;
+    const systemPrompt = `You are a sales route planner for Full CRM Demo, a configurable CRM and growth platform for small local businesses.\n\nAnalyze the provided leads and create an optimized visit plan. Return ONLY valid JSON — no markdown, no explanation.`;
 
     const userPrompt = `Route goal: ${routeGoal}\nMax stops: ${maxStops}\nStart time: ${config.startTime || '9:00 AM'}\nEnd time: ${config.endTime || '5:00 PM'}\nDate: ${config.routeDate || 'today'}\n\nLeads to evaluate (${leadsForAI.length} total):\n${JSON.stringify(leadsForAI, null, 2)}\n\nReturn a JSON object exactly matching this structure:\n{\n  "routeName": "string - descriptive name for this route",\n  "routeGoal": "string - refined route goal",\n  "summary": "string - 2-3 sentence summary of the route strategy",\n  "recommendedStops": [\n    {\n      "leadId": "string",\n      "businessName": "string",\n      "visitPriority": number (1 = highest),\n      "routeScore": number (0-100),\n      "visitReason": "string",\n      "talkingPoints": ["string"],\n      "recommendedPitch": "string",\n      "suggestedOffer": "string",\n      "leaveBehindSuggestion": "string",\n      "followUpAction": "string",\n      "estimatedVisitMinutes": number,\n      "skipReason": ""\n    }\n  ],\n  "skippedLeads": [\n    { "leadId": "string", "businessName": "string", "reason": "string" }\n  ],\n  "routeStrategy": "string",\n  "followUpPlan": "string"\n}\n\nOnly include the top ${maxStops} leads in recommendedStops. Move the rest to skippedLeads.`;
 

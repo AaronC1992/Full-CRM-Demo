@@ -223,7 +223,7 @@ export default function OutreachPage() {
               rows={12}
               value={editTemplate.content || ''}
               onChange={e => setEditTemplate(p => ({ ...p, content: e.target.value }))}
-              placeholder="Hey {{contactName}}, this is Aaron from Cue Marketing Solutions..."
+              placeholder="Hey {{contactName}}, this is Jordan from Full CRM Demo..."
             />
           </div>
           <div className="flex gap-2 justify-end pt-1">

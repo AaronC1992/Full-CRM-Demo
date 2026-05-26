@@ -11,7 +11,7 @@ import {
   IndustryOption,
 } from '@/lib/demo-mode';
 
-const STORAGE_KEY = 'cuecrm_demo_mode_v1';
+const STORAGE_KEY = 'fullcrmdemo_demo_mode_v1';
 
 interface DemoModeState {
   industry: DemoIndustry;

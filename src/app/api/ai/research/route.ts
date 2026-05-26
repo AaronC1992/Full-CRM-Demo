@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const systemPrompt = `You are a marketing research assistant for Cue Marketing Solutions, a digital marketing agency in Joplin, MO (service area: Joplin, Webb City, Carthage, Neosho, Carl Junction, Pittsburg MO). Return ONLY valid JSON arrays — no markdown, no explanation, no code fences.`;
+    const systemPrompt = `You are a marketing research assistant for Full CRM Demo, a configurable CRM demo platform for local businesses. Return ONLY valid JSON arrays — no markdown, no explanation, no code fences.`;
 
     const userPrompt = `Research ${count} local businesses in ${city}, MO in the ${industry} industry that would benefit from digital marketing services.\n\nReturn a JSON array ONLY in this exact format:\n\n[{\n  "businessName": "",\n  "contactName": "",\n  "phone": "",\n  "email": "",\n  "website": "",\n  "facebookPage": "",\n  "address": "",\n  "city": "${city}",\n  "state": "MO",\n  "industry": "${industry}",\n  "currentWebsiteQuality": "",\n  "hasWebsite": "Yes or No",\n  "hasFacebookPage": "Yes or No",\n  "googleBusinessProfile": "Yes or No",\n  "serviceOpportunity": "",\n  "suggestedOffer": "",\n  "estimatedDealValue": 0,\n  "leadSource": "AI Research",\n  "leadStatus": "New",\n  "priority": "Warm",\n  "notes": "",\n  "painPoints": "",\n  "personalizedPitch": "",\n  "tags": []\n}]\n\nFocus on businesses with outdated/no website, low online presence. Estimated deal value $997-$5000.`;
 
