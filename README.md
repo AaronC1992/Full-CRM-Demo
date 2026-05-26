@@ -5,6 +5,12 @@
 This project is intended to run locally after cloning from GitHub.
 There is no required Vercel deployment and no required Supabase dependency.
 
+### Start From GitHub
+
+[Open in GitHub Codespaces](https://codespaces.new/AaronC1992/Full-CRM-Demo)
+
+This opens the repository in a cloud development environment directly from GitHub, where you can run the CRM without deploying to Vercel.
+
 A full stack CRM demo built with Next.js and Tailwind CSS. This repository is configured to run locally from GitHub with local PostgreSQL only.
 
 ---
