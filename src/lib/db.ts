@@ -7,7 +7,7 @@ let _sql: ReturnType<typeof postgres> | undefined;
 
 type SqlTag = ReturnType<typeof postgres>;
 
-const DEMO_NO_DB_MODE = process.env.DEMO_NO_DB === 'true' || !process.env.DATABASE_URL;
+export const isNoDbMode = process.env.DEMO_NO_DB === 'true' || !process.env.DATABASE_URL;
 
 function buildMockAggregateRow(query: string) {
   const aggregateRegex = /(?:count|sum|max|min|avg)\s*\([^)]*\)\s+as\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi;
@@ -99,7 +99,7 @@ function assertDatabasePolicy(databaseUrl: string) {
 }
 
 function getDb() {
-  if (DEMO_NO_DB_MODE) {
+  if (isNoDbMode) {
     return createMockSql();
   }
 

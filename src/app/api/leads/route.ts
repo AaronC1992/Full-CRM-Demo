@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import getDb, { isNoDbMode } from '@/lib/db';
+import { getFilteredMockLeads } from '@/lib/mock-leads';
 import { Lead } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -8,6 +9,7 @@ function parseLead(row: Record<string, unknown>): Lead {
   return {
     ...row,
     tags: (() => {
+      if (Array.isArray(row.tags)) return row.tags as string[];
       try { return JSON.parse(row.tags as string || '[]'); }
       catch { return []; }
     })(),
@@ -16,7 +18,6 @@ function parseLead(row: Record<string, unknown>): Lead {
 
 export async function GET(req: NextRequest) {
   try {
-    const sql = getDb();
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
@@ -26,6 +27,21 @@ export async function GET(req: NextRequest) {
     const industry = searchParams.get('industry') || '';
     const sort = searchParams.get('sort') || 'createdDate';
     const dir = searchParams.get('dir') === 'asc' ? 'ASC' : 'DESC';
+
+    if (isNoDbMode) {
+      return NextResponse.json(getFilteredMockLeads({
+        search,
+        status,
+        priority,
+        city,
+        state,
+        industry,
+        sort,
+        dir: dir.toLowerCase() as 'asc' | 'desc',
+      }));
+    }
+
+    const sql = getDb();
 
     const sortMap: Record<string, string> = {
       businessName: 'business_name', contactName: 'contact_name',
@@ -58,10 +74,51 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const sql = getDb();
     const body = await req.json();
     const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
     const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : (body.tags || '[]');
+
+    if (isNoDbMode) {
+      const lead: Lead = {
+        id: Date.now(),
+        businessName: body.businessName || 'New Demo Lead',
+        contactName: body.contactName || '',
+        phone: body.phone || '',
+        email: body.email || '',
+        website: body.website || '',
+        facebookPage: body.facebookPage || '',
+        address: body.address || '',
+        city: body.city || '',
+        state: body.state || 'MO',
+        industry: body.industry || '',
+        currentWebsiteQuality: body.currentWebsiteQuality || '',
+        hasWebsite: body.hasWebsite || '',
+        hasFacebookPage: body.hasFacebookPage || '',
+        googleBusinessProfile: body.googleBusinessProfile || '',
+        serviceOpportunity: body.serviceOpportunity || '',
+        suggestedOffer: body.suggestedOffer || '',
+        estimatedDealValue: body.estimatedDealValue ?? null,
+        leadSource: body.leadSource || '',
+        leadStatus: body.leadStatus || 'New',
+        priority: body.priority || 'Warm',
+        lastContactedDate: body.lastContactedDate || '',
+        nextFollowUpDate: body.nextFollowUpDate || '',
+        notes: body.notes || '',
+        painPoints: body.painPoints || '',
+        personalizedPitch: body.personalizedPitch || '',
+        demoWebsiteUrl: body.demoWebsiteUrl || '',
+        crmDemoUrl: body.crmDemoUrl || '',
+        marketingPackageInterest: body.marketingPackageInterest || '',
+        websitePackageInterest: body.websitePackageInterest || '',
+        crmPackageInterest: body.crmPackageInterest || '',
+        tags: Array.isArray(body.tags) ? body.tags : [],
+        createdDate: ts,
+        updatedDate: ts,
+      };
+      return NextResponse.json(lead, { status: 201 });
+    }
+
+    const sql = getDb();
     const data = {
       businessName: body.businessName || '',
       contactName: body.contactName || '',

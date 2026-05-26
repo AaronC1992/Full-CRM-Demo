@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import getDb, { isNoDbMode } from '@/lib/db';
+import { buildMockDashboardStats } from '@/lib/mock-leads';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    if (isNoDbMode) {
+      return NextResponse.json(buildMockDashboardStats());
+    }
+
     const sql = getDb();
     const today = new Date().toISOString().split('T')[0];
 

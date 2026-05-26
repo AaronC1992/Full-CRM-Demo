@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import getDb, { isNoDbMode } from '@/lib/db';
+import { getMockLeadById } from '@/lib/mock-leads';
 import { Lead } from '@/lib/types';
 
 function parseLead(row: Record<string, unknown>): Lead {
   return {
     ...row,
     tags: (() => {
+      if (Array.isArray(row.tags)) return row.tags as string[];
       try { return JSON.parse(row.tags as string || '[]'); }
       catch { return []; }
     })(),
@@ -14,6 +16,12 @@ function parseLead(row: Record<string, unknown>): Lead {
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    if (isNoDbMode) {
+      const lead = getMockLeadById(Number(params.id));
+      if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      return NextResponse.json(lead);
+    }
+
     const sql = getDb();
     const [row] = await sql`SELECT * FROM leads WHERE id = ${params.id}`;
     if (!row) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
@@ -26,9 +34,22 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const sql = getDb();
     const body = await req.json();
     const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    if (isNoDbMode) {
+      const existing = getMockLeadById(Number(params.id));
+      if (!existing) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      const updated: Lead = {
+        ...existing,
+        ...body,
+        tags: body.tags !== undefined ? (Array.isArray(body.tags) ? body.tags : []) : existing.tags,
+        updatedDate: ts,
+      };
+      return NextResponse.json(updated);
+    }
+
+    const sql = getDb();
 
     const [existing] = await sql`SELECT * FROM leads WHERE id = ${params.id}` as Record<string, unknown>[];
     if (!existing) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
@@ -87,6 +108,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    if (isNoDbMode) {
+      const existing = getMockLeadById(Number(params.id));
+      if (!existing) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      return NextResponse.json({ success: true });
+    }
+
     const sql = getDb();
     const [existing] = await sql`SELECT id FROM leads WHERE id = ${params.id}`;
     if (!existing) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
