@@ -6,6 +6,7 @@ import { Lead } from '@/lib/types';
 import { formatDate, formatCurrency, LEAD_STATUSES, PRIORITIES, INDUSTRIES } from '@/lib/utils';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Suspense } from 'react';
 import ColumnEditor, { ColDef, ColState, mergeColState } from '@/components/ui/ColumnEditor';
 import {
@@ -58,6 +59,7 @@ function getInitialLeadsCols(): ColState[] {
 
 function LeadsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>(getInitialLeads);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -147,6 +149,7 @@ function LeadsContent() {
     setFilterStatus('');
     setFilterPriority('');
     setFilterIndustry('');
+    router.replace('/leads');
   };
 
   const activeFilters = [search.trim(), filterStatus, filterPriority, filterIndustry].filter(Boolean).length;
@@ -271,6 +274,24 @@ function LeadsContent() {
             </Link>
           </div>
         </div>
+
+        {activeFilters > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-sm text-amber-900">
+              You are viewing filtered leads
+              {filterStatus ? ` • Status: ${filterStatus}` : ''}
+              {filterPriority ? ` • Priority: ${filterPriority}` : ''}
+              {filterIndustry ? ` • Industry: ${filterIndustry}` : ''}
+              {search.trim() ? ` • Search: "${search.trim()}"` : ''}
+            </p>
+            <button
+              onClick={clearFilters}
+              className="text-xs font-semibold text-amber-900 underline whitespace-nowrap"
+            >
+              Show all leads
+            </button>
+          </div>
+        )}
 
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
