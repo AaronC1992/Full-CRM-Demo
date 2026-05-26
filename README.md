@@ -2,7 +2,7 @@
 
 ## Try Full CRM Demo
 
-**[Try Full CRM Demo](https://github.com/AaronC1992/Full-CRM-Demo)**
+**[Try Full CRM Demo](https://crm-ten-theta-26.vercel.app/dashboard)**
 
 A full stack CRM demo built with Next.js and Tailwind CSS. This repository is configured to run locally from GitHub with local PostgreSQL and no dependency on Vercel or Supabase.
 
