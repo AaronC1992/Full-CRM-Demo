@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: full-crm-demo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: full_crm_demo
+      POSTGRES_USER: full_crm_demo
+      POSTGRES_PASSWORD: full_crm_demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - full_crm_demo_data:/var/lib/postgresql/data
+      - ./supabase-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+volumes:
+  full_crm_demo_data:

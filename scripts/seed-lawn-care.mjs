@@ -17,11 +17,30 @@ const dbUrlLine = envContent.split('\n').find(l => l.startsWith('DATABASE_URL=')
 const DATABASE_URL = dbUrlLine?.slice('DATABASE_URL='.length).trim();
 if (!DATABASE_URL) throw new Error('DATABASE_URL not found in .env.local');
 
+const allowRemoteDb = process.env.ALLOW_REMOTE_DB === 'true';
+if (!allowRemoteDb && DATABASE_URL.toLowerCase().includes('supabase.com')) {
+  throw new Error('Supabase connections are blocked for Full CRM Demo. Use a local PostgreSQL DATABASE_URL or set ALLOW_REMOTE_DB=true explicitly.');
+}
+
+function resolveSslMode(databaseUrl) {
+  const explicit = process.env.DB_SSL_MODE?.toLowerCase();
+  if (explicit === 'require') return 'require';
+  if (explicit === 'disable') return false;
+
+  try {
+    const hostname = new URL(databaseUrl).hostname.toLowerCase();
+    const localHosts = new Set(['localhost', '127.0.0.1', '::1', 'db', 'postgres']);
+    return localHosts.has(hostname) ? false : 'require';
+  } catch {
+    return 'require';
+  }
+}
+
 const toCamel = s => s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
 const fromCamel = s => s.replace(/([A-Z])/g, c => `_${c.toLowerCase()}`);
 
 const sql = postgres(DATABASE_URL, {
-  ssl: 'require',
+  ssl: resolveSslMode(DATABASE_URL),
   max: 1,
   idle_timeout: 20,
   connect_timeout: 10,

@@ -13,9 +13,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid leadId' }, { status: 400 });
     }
 
-    let tasks;
-
-    tasks = await sql`
+    const tasks = await sql`
       SELECT t.*, l.business_name as lead_name
       FROM tasks t
       LEFT JOIN leads l ON t.lead_id = l.id

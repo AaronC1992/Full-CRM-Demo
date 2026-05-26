@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d",
     "seed:lawn-care": "node scripts/seed-lawn-care.mjs",
     "seed:demo": "node scripts/reset-demo-data.mjs"
   },

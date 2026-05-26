@@ -64,6 +64,9 @@ function buildDeals(stages: string[]): DemoDeal[] {
 
 export default function PipelinePage() {
   const { industry, profile, enabledModules } = useDemoMode();
+  const stages = useMemo(() => buildPipelineStages(industry), [industry]);
+  const [deals, setDeals] = useState<DemoDeal[]>(() => buildDeals(stages));
+  const [dragId, setDragId] = useState<string | null>(null);
 
   if (!enabledModules['lead-pipeline']) {
     return (
@@ -72,10 +75,6 @@ export default function PipelinePage() {
       </AppLayout>
     );
   }
-
-  const stages = useMemo(() => buildPipelineStages(industry), [industry]);
-  const [deals, setDeals] = useState<DemoDeal[]>(() => buildDeals(stages));
-  const [dragId, setDragId] = useState<string | null>(null);
 
   const grouped = stages.map((stage) => ({
     stage,

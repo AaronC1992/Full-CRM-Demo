@@ -23,6 +23,25 @@ function loadDatabaseUrl() {
 
 const DATABASE_URL = loadDatabaseUrl();
 
+const allowRemoteDb = process.env.ALLOW_REMOTE_DB === 'true';
+if (!allowRemoteDb && DATABASE_URL.toLowerCase().includes('supabase.com')) {
+  throw new Error('Supabase connections are blocked for Full CRM Demo. Use a local PostgreSQL DATABASE_URL or set ALLOW_REMOTE_DB=true explicitly.');
+}
+
+function resolveSslMode(databaseUrl) {
+  const explicit = process.env.DB_SSL_MODE?.toLowerCase();
+  if (explicit === 'require') return 'require';
+  if (explicit === 'disable') return false;
+
+  try {
+    const hostname = new URL(databaseUrl).hostname.toLowerCase();
+    const localHosts = new Set(['localhost', '127.0.0.1', '::1', 'db', 'postgres']);
+    return localHosts.has(hostname) ? false : 'require';
+  } catch {
+    return 'require';
+  }
+}
+
 const RESET_CONFIRMATION_VALUE = 'YES_I_UNDERSTAND_THIS_DELETES_DATA';
 if (process.env.ALLOW_DEMO_RESET !== RESET_CONFIRMATION_VALUE) {
   throw new Error(
@@ -31,7 +50,7 @@ if (process.env.ALLOW_DEMO_RESET !== RESET_CONFIRMATION_VALUE) {
 }
 
 const sql = postgres(DATABASE_URL, {
-  ssl: 'require',
+  ssl: resolveSslMode(DATABASE_URL),
   max: 1,
   idle_timeout: 20,
   connect_timeout: 10,
