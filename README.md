@@ -17,6 +17,10 @@ This opens the repository in a cloud development environment directly from GitHu
 
 This is the production deployment for quick access without local setup.
 
+Demo login:
+Username: admin
+Password: password
+
 A full stack CRM demo built with Next.js and Tailwind CSS. This repository is configured to run locally from GitHub with local PostgreSQL only.
 
 ---
