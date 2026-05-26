@@ -1,5 +1,9 @@
 # Cue CRM
 
+## Try CRM Now
+
+**[Try CRM Now](https://crm-ten-theta-26.vercel.app/dashboard)**
+
 A full stack CRM built with Next.js, Supabase, and Tailwind CSS. Designed for managing leads, routes, tasks, deals, demos, and outreach for a local digital marketing agency.
 
 **[Live App](https://crm-ten-theta-26.vercel.app)**

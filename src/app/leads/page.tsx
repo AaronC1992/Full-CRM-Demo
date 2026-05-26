@@ -74,6 +74,21 @@ function LeadsContent() {
   const [sort, setSort] = useState('createdDate');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  // Keep local filter state in sync with URL query params.
+  useEffect(() => {
+    const statusParam = searchParams.get('status') || '';
+    const priorityParam = searchParams.get('priority') || '';
+    const industryParam = searchParams.get('industry') || '';
+    const searchParam = searchParams.get('search') || '';
+
+    setFilterStatus(statusParam);
+    setFilterPriority(priorityParam);
+    setFilterIndustry(industryParam);
+    setSearchInput(searchParam);
+    setSearch(searchParam);
+  }, [searchParams]);
+
   // Save column state to localStorage
   useEffect(() => {
     try { localStorage.setItem(LEADS_COLS_KEY, JSON.stringify(colState)); } catch { /* ignore */ }
