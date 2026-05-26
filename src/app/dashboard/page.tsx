@@ -53,6 +53,18 @@ export default function DashboardPage() {
 
   if (!stats) return <AppLayout title="Dashboard"><p className="text-red-500">Failed to load dashboard.</p></AppLayout>;
 
+  const isNoDataMode =
+    stats.totalLeads === 0 &&
+    stats.newLeads === 0 &&
+    stats.contactedLeads === 0 &&
+    stats.interestedLeads === 0 &&
+    stats.monthlyEstimatedValue === 0 &&
+    stats.wonThisMonthValue === 0;
+
+  const profileCards = isNoDataMode
+    ? profile.dashboardCards.map((card) => ({ ...card, value: 0, trend: 'No activity yet' }))
+    : profile.dashboardCards;
+
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6">
@@ -69,7 +81,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
-            {profile.dashboardCards.map((card) => (
+            {profileCards.map((card) => (
               <div key={card.label} className="bg-white/10 border border-white/10 rounded-lg p-3">
                 <p className="text-xs text-slate-300">{card.label}</p>
                 <p className="text-xl font-bold mt-0.5">{typeof card.value === 'number' ? card.value.toLocaleString() : card.value}</p>
