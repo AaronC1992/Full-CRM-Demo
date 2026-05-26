@@ -23,6 +23,13 @@ function loadDatabaseUrl() {
 
 const DATABASE_URL = loadDatabaseUrl();
 
+const RESET_CONFIRMATION_VALUE = 'YES_I_UNDERSTAND_THIS_DELETES_DATA';
+if (process.env.ALLOW_DEMO_RESET !== RESET_CONFIRMATION_VALUE) {
+  throw new Error(
+    `Refusing to run reset-demo-data. Set ALLOW_DEMO_RESET=${RESET_CONFIRMATION_VALUE} to continue.`
+  );
+}
+
 const sql = postgres(DATABASE_URL, {
   ssl: 'require',
   max: 1,
