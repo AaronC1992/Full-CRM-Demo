@@ -142,10 +142,14 @@ function LeadsContent() {
   };
 
   const clearFilters = () => {
-    setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterIndustry('');
+    setSearchInput('');
+    setSearch('');
+    setFilterStatus('');
+    setFilterPriority('');
+    setFilterIndustry('');
   };
 
-  const activeFilters = [filterStatus, filterPriority, filterIndustry].filter(Boolean).length;
+  const activeFilters = [search.trim(), filterStatus, filterPriority, filterIndustry].filter(Boolean).length;
 
   return (
     <AppLayout title="Leads">
