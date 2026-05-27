@@ -28,6 +28,7 @@ const MAIN_NAV: NavItem[] = [
   { href: '/invoices', label: 'Invoices', icon: ReceiptText, module: 'invoices' },
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/routes', label: 'Routes', icon: MapPin, module: 'route-builder' },
+  { href: '/automations', label: 'Automations', icon: Sparkles, module: 'automations' },
   { href: '/marketing', label: 'Marketing', icon: Megaphone, module: 'marketing-dashboard' },
   { href: '/reviews', label: 'Reviews', icon: Star, module: 'review-requests' },
   { href: '/reports', label: 'Reports', icon: LineChart, module: 'reports' },

@@ -53,6 +53,7 @@ export type DemoModuleKey =
   | 'review-requests'
   | 'email-followups'
   | 'sms-followups'
+  | 'automations'
   | 'customer-portal'
   | 'marketing-dashboard'
   | 'inventory'
@@ -84,6 +85,7 @@ export const DEMO_MODULES: DemoModuleDefinition[] = [
   { key: 'review-requests', label: 'Review requests', route: '/reviews', category: 'Growth', description: 'Review request queue and response ideas.', monthlyWeight: 49, setupWeight: 350 },
   { key: 'email-followups', label: 'Email follow ups', route: '/outreach', category: 'Automation', description: 'Automated email sequences and reminders.', monthlyWeight: 39, setupWeight: 250 },
   { key: 'sms-followups', label: 'SMS follow ups', route: '/outreach', category: 'Automation', description: 'SMS touch points and missed lead recovery.', monthlyWeight: 39, setupWeight: 250 },
+  { key: 'automations', label: 'Automations', route: '/automations', category: 'Automation', description: 'Rule based workflows that create follow up actions automatically.', monthlyWeight: 89, setupWeight: 650 },
   { key: 'customer-portal', label: 'Customer portal', route: '/customer-portal', category: 'Growth', description: 'Client self service view for estimates and invoices.', monthlyWeight: 69, setupWeight: 550 },
   { key: 'marketing-dashboard', label: 'Marketing dashboard', route: '/marketing', category: 'Growth', description: 'Campaign health, ideas, and growth progress.', monthlyWeight: 79, setupWeight: 650 },
   { key: 'inventory', label: 'Inventory', category: 'Operations', description: 'Stock tracking for parts and retail items.', monthlyWeight: 49, setupWeight: 350 },
