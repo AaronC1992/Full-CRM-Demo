@@ -5,7 +5,8 @@ import {
   LayoutDashboard, Users, Handshake,
   CheckSquare, Settings, Sparkles,
   MessageSquare, X, BarChart3, MapPin, CalendarDays, UserCheck,
-  ClipboardList, ReceiptText, FileText, Megaphone, Star, LineChart, Blocks, Layers
+  ClipboardList, ReceiptText, FileText, Megaphone, Star, LineChart, Blocks, Layers,
+  Bell, Smartphone, CreditCard, Gauge,
 } from 'lucide-react';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { DemoModuleKey } from '@/lib/demo-mode';
@@ -21,6 +22,7 @@ const MAIN_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/customers', label: 'Customers', icon: UserCheck, module: 'customers' },
   { href: '/leads', label: 'Leads', icon: Users },
+  { href: '/lead-scoring', label: 'Lead scoring', icon: Gauge, module: 'lead-scoring' },
   { href: '/pipeline', label: 'Pipeline', icon: Handshake, module: 'lead-pipeline' },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'scheduling' },
   { href: '/jobs', label: 'Jobs or Projects', icon: ClipboardList, module: 'job-tracking' },
@@ -29,11 +31,14 @@ const MAIN_NAV: NavItem[] = [
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/routes', label: 'Routes', icon: MapPin, module: 'route-builder' },
   { href: '/automations', label: 'Automations', icon: Sparkles, module: 'automations' },
+  { href: '/notifications', label: 'Notifications', icon: Bell, module: 'notifications' },
+  { href: '/field-mode', label: 'Field mode', icon: Smartphone, module: 'field-mode' },
   { href: '/marketing', label: 'Marketing', icon: Megaphone, module: 'marketing-dashboard' },
   { href: '/reviews', label: 'Reviews', icon: Star, module: 'review-requests' },
   { href: '/reports', label: 'Reports', icon: LineChart, module: 'reports' },
   { href: '/ai-helper', label: 'AI Assistant', icon: Sparkles, module: 'ai-assistant' },
   { href: '/customer-portal', label: 'Customer Portal', icon: Layers, module: 'customer-portal' },
+  { href: '/billing', label: 'Billing', icon: CreditCard, module: 'billing' },
   { href: '/feature-builder', label: 'Feature Builder', icon: Blocks },
   { href: '/package-builder', label: 'Package Builder', icon: MessageSquare },
   { href: '/settings', label: 'Settings', icon: Settings },

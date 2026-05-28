@@ -45,6 +45,7 @@ export const INDUSTRY_OPTIONS: IndustryOption[] = [
 export type DemoModuleKey =
   | 'customers'
   | 'lead-pipeline'
+  | 'lead-scoring'
   | 'job-tracking'
   | 'estimates'
   | 'invoices'
@@ -54,12 +55,15 @@ export type DemoModuleKey =
   | 'email-followups'
   | 'sms-followups'
   | 'automations'
+  | 'notifications'
+  | 'field-mode'
   | 'customer-portal'
   | 'marketing-dashboard'
   | 'inventory'
   | 'team-management'
   | 'reports'
   | 'ai-assistant'
+  | 'billing'
   | 'website-lead-forms'
   | 'landing-pages'
   | 'service-area-pages';
@@ -77,6 +81,7 @@ export interface DemoModuleDefinition {
 export const DEMO_MODULES: DemoModuleDefinition[] = [
   { key: 'customers', label: 'Customer CRM', route: '/customers', category: 'Core CRM', description: 'Customer records, notes, tags, files, and history.', monthlyWeight: 79, setupWeight: 600 },
   { key: 'lead-pipeline', label: 'Lead pipeline', route: '/pipeline', category: 'Core CRM', description: 'Pipeline boards with stages and follow up tasks.', monthlyWeight: 69, setupWeight: 500 },
+  { key: 'lead-scoring', label: 'Lead scoring', route: '/lead-scoring', category: 'Core CRM', description: 'Weighted lead scores and deal priority guidance.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'job-tracking', label: 'Job tracking', route: '/jobs', category: 'Operations', description: 'Jobs, projects, status, and assignments.', monthlyWeight: 89, setupWeight: 700 },
   { key: 'estimates', label: 'Estimates', route: '/estimates', category: 'Operations', description: 'Estimate builder, statuses, and preview layout.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'invoices', label: 'Invoices', route: '/invoices', category: 'Operations', description: 'Invoice lifecycle with paid and overdue states.', monthlyWeight: 59, setupWeight: 450 },
@@ -86,12 +91,15 @@ export const DEMO_MODULES: DemoModuleDefinition[] = [
   { key: 'email-followups', label: 'Email follow ups', route: '/outreach', category: 'Automation', description: 'Automated email sequences and reminders.', monthlyWeight: 39, setupWeight: 250 },
   { key: 'sms-followups', label: 'SMS follow ups', route: '/outreach', category: 'Automation', description: 'SMS touch points and missed lead recovery.', monthlyWeight: 39, setupWeight: 250 },
   { key: 'automations', label: 'Automations', route: '/automations', category: 'Automation', description: 'Rule based workflows that create follow up actions automatically.', monthlyWeight: 89, setupWeight: 650 },
+  { key: 'notifications', label: 'Notifications', route: '/notifications', category: 'Automation', description: 'Alerts, reminders, and live activity updates.', monthlyWeight: 39, setupWeight: 250 },
+  { key: 'field-mode', label: 'Field mode', route: '/field-mode', category: 'Operations', description: 'Mobile friendly field view for visits and quick updates.', monthlyWeight: 59, setupWeight: 500 },
   { key: 'customer-portal', label: 'Customer portal', route: '/customer-portal', category: 'Growth', description: 'Client self service view for estimates and invoices.', monthlyWeight: 69, setupWeight: 550 },
   { key: 'marketing-dashboard', label: 'Marketing dashboard', route: '/marketing', category: 'Growth', description: 'Campaign health, ideas, and growth progress.', monthlyWeight: 79, setupWeight: 650 },
   { key: 'inventory', label: 'Inventory', category: 'Operations', description: 'Stock tracking for parts and retail items.', monthlyWeight: 49, setupWeight: 350 },
   { key: 'team-management', label: 'Team management', route: '/settings', category: 'Admin', description: 'Users, permissions, and performance overview.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'reports', label: 'Reports', route: '/reports', category: 'Admin', description: 'Revenue, conversion, retention, and activity reports.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'ai-assistant', label: 'AI assistant', route: '/ai-helper', category: 'Automation', description: 'Suggested actions, writing support, and summaries.', monthlyWeight: 99, setupWeight: 900 },
+  { key: 'billing', label: 'Billing', route: '/billing', category: 'Admin', description: 'Subscription plans, invoices, and payment details.', monthlyWeight: 49, setupWeight: 350 },
   { key: 'website-lead-forms', label: 'Website lead forms', route: '/marketing', category: 'Growth', description: 'Lead capture forms and source tracking.', monthlyWeight: 39, setupWeight: 300 },
   { key: 'landing-pages', label: 'Landing pages', route: '/marketing', category: 'Growth', description: 'Campaign pages and conversion ideas.', monthlyWeight: 49, setupWeight: 350 },
   { key: 'service-area-pages', label: 'Service area pages', route: '/marketing', category: 'Growth', description: 'Local city pages and local SEO checklist.', monthlyWeight: 49, setupWeight: 350 },
