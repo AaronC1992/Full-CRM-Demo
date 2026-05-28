@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import getDb, { isNoDbMode } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
-import { ensureUserManagementSchema } from '@/lib/user-management';
+import { ensureUserManagementSchema, getMockAssignments, setMockAssignments } from '@/lib/user-management';
 
 type LeadAssignmentRow = { id: number; businessName: string; leadStatus: string };
 type RouteAssignmentRow = { id: number; name: string; routeDate: string; status: string };
@@ -20,6 +20,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   try {
     const userId = Number(params.id);
     if (!Number.isFinite(userId)) return NextResponse.json({ error: 'Invalid user id' }, { status: 400 });
+
+    if (isNoDbMode) {
+      return NextResponse.json(getMockAssignments(userId));
+    }
 
     const sql = getDb();
     await ensureUserManagementSchema(sql);
@@ -58,6 +62,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const body = await req.json() as { leadIds?: unknown; routeIds?: unknown };
     const leadIds = toNumberList(body.leadIds);
     const routeIds = toNumberList(body.routeIds);
+
+    if (isNoDbMode) {
+      setMockAssignments(userId, leadIds, routeIds);
+      return NextResponse.json({ success: true, leadCount: leadIds.length, routeCount: routeIds.length });
+    }
 
     const sql = getDb();
     await ensureUserManagementSchema(sql);

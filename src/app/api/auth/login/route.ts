@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
-import getDb from '@/lib/db';
-import { ensureUserManagementSchema } from '@/lib/user-management';
+import getDb, { isNoDbMode } from '@/lib/db';
+import { ensureUserManagementSchema, findMockUserByUsername } from '@/lib/user-management';
 
 const COOKIE_NAME = 'cue_session';
 
@@ -46,24 +46,39 @@ export async function POST(req: NextRequest) {
     let authUser: { username: string; role: 'admin' | 'member'; userId: number | null; name: string } | null = null;
 
     try {
-      const sql = getDb();
-      await ensureUserManagementSchema(sql);
-      const [user] = await sql`
-        SELECT id, username, full_name, role, password_hash, active
-        FROM app_users
-        WHERE username = ${String(username || '').trim().toLowerCase()}
-        LIMIT 1
-      ` as Array<{ id: number; username: string; fullName: string; role: string; passwordHash: string; active: number }>;
+      if (isNoDbMode) {
+        const mockUser = findMockUserByUsername(String(username || ''));
+        if (mockUser && mockUser.active) {
+          const passwordMatch = await bcrypt.compare(password ?? '', mockUser.passwordHash);
+          if (passwordMatch) {
+            authUser = {
+              username: mockUser.username,
+              role: mockUser.role,
+              userId: mockUser.id,
+              name: mockUser.fullName || mockUser.username,
+            };
+          }
+        }
+      } else {
+        const sql = getDb();
+        await ensureUserManagementSchema(sql);
+        const [user] = await sql`
+          SELECT id, username, full_name, role, password_hash, active
+          FROM app_users
+          WHERE username = ${String(username || '').trim().toLowerCase()}
+          LIMIT 1
+        ` as Array<{ id: number; username: string; fullName: string; role: string; passwordHash: string; active: number }>;
 
-      if (user && user.active === 1) {
-        const passwordMatch = await bcrypt.compare(password ?? '', user.passwordHash);
-        if (passwordMatch) {
-          authUser = {
-            username: user.username,
-            role: user.role === 'admin' ? 'admin' : 'member',
-            userId: user.id,
-            name: user.fullName || user.username,
-          };
+        if (user && user.active === 1) {
+          const passwordMatch = await bcrypt.compare(password ?? '', user.passwordHash);
+          if (passwordMatch) {
+            authUser = {
+              username: user.username,
+              role: user.role === 'admin' ? 'admin' : 'member',
+              userId: user.id,
+              name: user.fullName || user.username,
+            };
+          }
         }
       }
     } catch {

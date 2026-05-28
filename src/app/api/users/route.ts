@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import getDb from '@/lib/db';
+import getDb, { isNoDbMode } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
-import { ensureUserManagementSchema } from '@/lib/user-management';
+import { createMockUser, ensureUserManagementSchema, findMockUserByUsername, listMockUsers } from '@/lib/user-management';
 
 type UserRow = {
   id: number;
@@ -19,6 +19,10 @@ export async function GET(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 
   try {
+    if (isNoDbMode) {
+      return NextResponse.json(listMockUsers());
+    }
+
     const sql = getDb();
     await ensureUserManagementSchema(sql);
 
@@ -69,6 +73,25 @@ export async function POST(req: NextRequest) {
 
     if (!username || !fullName || password.length < 8) {
       return NextResponse.json({ error: 'Name, username, and password are required. Password needs at least 8 characters.' }, { status: 400 });
+    }
+
+    if (isNoDbMode) {
+      const existing = findMockUserByUsername(username);
+      if (existing) {
+        return NextResponse.json({ error: 'Username already exists' }, { status: 409 });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const created = createMockUser({ username, fullName, role, passwordHash });
+      return NextResponse.json({
+        id: created.id,
+        username: created.username,
+        fullName: created.fullName,
+        role: created.role,
+        active: created.active,
+        leadCount: 0,
+        routeCount: 0,
+      }, { status: 201 });
     }
 
     const sql = getDb();
