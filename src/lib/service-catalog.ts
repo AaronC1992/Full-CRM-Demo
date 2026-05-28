@@ -11,6 +11,22 @@ function normalizeServiceName(value: string): string {
   return value.trim().toLowerCase();
 }
 
+export function suggestMockServiceValue(name: string): number {
+  const normalized = normalizeServiceName(name);
+
+  const contains = (values: string[]) => values.some((value) => normalized.includes(value));
+
+  if (contains(['one time', 'single visit', 'inspection', 'consultation'])) return 149;
+  if (contains(['weekly', 'biweekly', 'monthly', 'plan', 'membership', 'maintenance'])) return 249;
+  if (contains(['repair', 'install', 'installation', 'replacement', 'remodel', 'build'])) return 699;
+  if (contains(['mow', 'cleaning', 'detail', 'rotation', 'oil change', 'service'])) return 199;
+  if (contains(['commercial', 'fleet', 'contract', 'corporate'])) return 899;
+  if (contains(['premium', 'vip', 'wedding', 'bridal', 'package', 'bundle'])) return 499;
+  if (contains(['emergency', 'urgent'])) return 349;
+
+  return 229;
+}
+
 export function parseSelectedServices(value?: string | null): string[] {
   if (!value) return [];
 
@@ -23,12 +39,22 @@ export function parseSelectedServices(value?: string | null): string[] {
 }
 
 export function createServiceCatalogItem(name: string, value = 0): ServiceCatalogItem {
+  const trimmedName = name.trim();
+  const parsedValue = Number(value);
+  const defaultValue = suggestMockServiceValue(trimmedName);
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-    name: name.trim(),
-    value: Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0,
+    name: trimmedName,
+    value: Number.isFinite(parsedValue) && parsedValue > 0 ? Math.max(0, Math.round(parsedValue)) : defaultValue,
     active: true,
   };
+}
+
+export function fillMissingMockPrices(catalog: ServiceCatalogItem[]): ServiceCatalogItem[] {
+  return catalog.map((item) => {
+    if (item.value > 0) return item;
+    return { ...item, value: suggestMockServiceValue(item.name) };
+  });
 }
 
 export function mergeCatalogWithServices(existing: ServiceCatalogItem[], serviceNames: string[]): ServiceCatalogItem[] {

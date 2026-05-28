@@ -10,6 +10,7 @@ import {
   XCircle, PhoneCall, Send, Calendar, DollarSign, Flame, Clock, MapPin
 } from 'lucide-react';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
+import { calculateEstimatedValue, loadServiceCatalog, parseSelectedServices, ServiceCatalogItem } from '@/lib/service-catalog';
 
 function StatCard({ label, value, icon: Icon, color, sub, href }: {
   label: string; value: number | string; icon: React.ElementType;
@@ -33,14 +34,35 @@ function StatCard({ label, value, icon: Icon, color, sub, href }: {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [allLeads, setAllLeads] = useState<Lead[]>([]);
+  const [servicePricing, setServicePricing] = useState<ServiceCatalogItem[]>([]);
+  const [leadsLoaded, setLeadsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const { profile, industryOption } = useDemoMode();
 
   useEffect(() => {
-    fetch('/api/dashboard')
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`)))
-      .then(data => { setStats(data); setLoading(false); })
+    Promise.all([
+      fetch('/api/dashboard').then((response) => response.ok ? response.json() : Promise.reject(new Error(`API ${response.status}`))),
+      fetch('/api/leads?sort=createdDate&dir=desc').then((response) => response.ok ? response.json() : []),
+    ])
+      .then(([dashboardData, leadsData]) => {
+        setStats(dashboardData);
+        setAllLeads(Array.isArray(leadsData) ? leadsData : []);
+        setLeadsLoaded(true);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const sync = () => setServicePricing(loadServiceCatalog());
+    sync();
+    window.addEventListener('storage', sync);
+    window.addEventListener('fullcrm-services-updated', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('fullcrm-services-updated', sync);
+    };
   }, []);
 
   if (loading) {
@@ -55,13 +77,36 @@ export default function DashboardPage() {
 
   if (!stats) return <AppLayout title="Dashboard"><p className="text-red-500">Failed to load dashboard.</p></AppLayout>;
 
+  const getLeadEstimatedValue = (lead: Pick<Lead, 'serviceOpportunity' | 'estimatedDealValue'>): number => {
+    const computed = calculateEstimatedValue(parseSelectedServices(lead.serviceOpportunity), servicePricing);
+    return computed > 0 ? computed : (lead.estimatedDealValue || 0);
+  };
+
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const inCurrentMonth = (value?: string) => Boolean(value && value.startsWith(thisMonth));
+
+  const serviceBasedMonthlyValue = allLeads.reduce((sum, lead) => {
+    if (['Lost', 'Not a fit'].includes(lead.leadStatus)) return sum;
+    if (!inCurrentMonth(lead.createdDate)) return sum;
+    return sum + getLeadEstimatedValue(lead);
+  }, 0);
+
+  const serviceBasedWonValue = allLeads.reduce((sum, lead) => {
+    if (lead.leadStatus !== 'Won') return sum;
+    if (!inCurrentMonth(lead.updatedDate)) return sum;
+    return sum + getLeadEstimatedValue(lead);
+  }, 0);
+
+  const monthlyEstimatedValue = leadsLoaded ? serviceBasedMonthlyValue : stats.monthlyEstimatedValue;
+  const wonThisMonthValue = leadsLoaded ? serviceBasedWonValue : stats.wonThisMonthValue;
+
   const isNoDataMode =
     stats.totalLeads === 0 &&
     stats.newLeads === 0 &&
     stats.contactedLeads === 0 &&
     stats.interestedLeads === 0 &&
-    stats.monthlyEstimatedValue === 0 &&
-    stats.wonThisMonthValue === 0;
+    monthlyEstimatedValue === 0 &&
+    wonThisMonthValue === 0;
 
   const profileCards = isNoDataMode
     ? profile.dashboardCards.map((card) => ({ ...card, value: 0, trend: 'No activity yet' }))
@@ -134,7 +179,7 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-500 mt-1">Premium demo metrics for discovery calls and package scoping.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3 mt-3">
             {[
-              { label: 'Revenue', value: formatCurrency(stats.wonThisMonthValue + stats.monthlyEstimatedValue) },
+              { label: 'Revenue', value: formatCurrency(wonThisMonthValue + monthlyEstimatedValue) },
               { label: 'Leads', value: stats.totalLeads },
               { label: profile.customerLabel, value: stats.wonDeals + 47 },
               { label: `Open ${profile.jobLabel}`, value: stats.contactedLeads + 8 },
@@ -190,7 +235,7 @@ export default function DashboardPage() {
               <DollarSign size={22} className="opacity-80 shrink-0" />
               <div>
                 <p className="text-blue-100 text-sm font-medium">Pipeline This Month</p>
-                <p className="text-3xl font-bold">{formatCurrency(stats.monthlyEstimatedValue)}</p>
+                <p className="text-3xl font-bold">{formatCurrency(monthlyEstimatedValue)}</p>
                 <p className="text-blue-200 text-xs mt-0.5">New leads added this month</p>
               </div>
             </div>
@@ -200,7 +245,7 @@ export default function DashboardPage() {
               <CheckCircle2 size={22} className="opacity-80 shrink-0" />
               <div>
                 <p className="text-green-100 text-sm font-medium">Won This Month</p>
-                <p className="text-3xl font-bold">{formatCurrency(stats.wonThisMonthValue)}</p>
+                <p className="text-3xl font-bold">{formatCurrency(wonThisMonthValue)}</p>
                 <p className="text-green-200 text-xs mt-0.5">Closed deals this month</p>
               </div>
             </div>

@@ -9,6 +9,7 @@ import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 import {
   ServiceCatalogItem,
   createServiceCatalogItem,
+  fillMissingMockPrices,
   loadServiceCatalog,
   mergeCatalogWithServices,
   saveServiceCatalog,
@@ -25,9 +26,9 @@ export default function ServicesPage() {
 
   useEffect(() => {
     const existing = loadServiceCatalog();
-    const merged = mergeCatalogWithServices(existing, modeCatalog.serviceOptions);
+    const merged = fillMissingMockPrices(mergeCatalogWithServices(existing, modeCatalog.serviceOptions));
     setServices(merged);
-    if (merged.length !== existing.length) {
+    if (JSON.stringify(merged) !== JSON.stringify(existing)) {
       saveServiceCatalog(merged);
     }
   }, [industry]);
@@ -66,7 +67,7 @@ export default function ServicesPage() {
   };
 
   const resetFromMode = () => {
-    const reset = mergeCatalogWithServices([], modeCatalog.serviceOptions);
+    const reset = fillMissingMockPrices(mergeCatalogWithServices([], modeCatalog.serviceOptions));
     setServices(reset);
     saveServiceCatalog(reset);
     showToast('Service list reset to this mode defaults.');
