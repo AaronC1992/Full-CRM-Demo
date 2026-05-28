@@ -11,10 +11,7 @@ import {
 } from 'lucide-react';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
 
-function StatCard({ label, value, icon: Icon, color, sub }: {
-  label: string; value: number | string; icon: React.ElementType;
-  color: string; sub?: string; href?: string;
-}) {
+function StatCard({ label, value, icon: Icon, color, sub, href }: {
   label: string; value: number | string; icon: React.ElementType;
   color: string; sub?: string; href?: string;
 }) {
