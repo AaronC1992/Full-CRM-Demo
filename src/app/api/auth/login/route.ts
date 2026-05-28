@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
+import getDb from '@/lib/db';
+import { ensureUserManagementSchema } from '@/lib/user-management';
 
 const COOKIE_NAME = 'cue_session';
 
@@ -39,25 +41,65 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
     }
 
-    const { username, password } = await req.json();
+    const { username, password } = await req.json() as { username?: string; password?: string };
 
-    const validUsername = process.env.AUTH_USERNAME;
-    const passwordHash = process.env.AUTH_PASSWORD_HASH;
+    let authUser: { username: string; role: 'admin' | 'member'; userId: number | null; name: string } | null = null;
 
-    if (!validUsername || !passwordHash) {
-      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    try {
+      const sql = getDb();
+      await ensureUserManagementSchema(sql);
+      const [user] = await sql`
+        SELECT id, username, full_name, role, password_hash, active
+        FROM app_users
+        WHERE username = ${String(username || '').trim().toLowerCase()}
+        LIMIT 1
+      ` as Array<{ id: number; username: string; fullName: string; role: string; passwordHash: string; active: number }>;
+
+      if (user && user.active === 1) {
+        const passwordMatch = await bcrypt.compare(password ?? '', user.passwordHash);
+        if (passwordMatch) {
+          authUser = {
+            username: user.username,
+            role: user.role === 'admin' ? 'admin' : 'member',
+            userId: user.id,
+            name: user.fullName || user.username,
+          };
+        }
+      }
+    } catch {
+      // Fallback to env credentials when user table is unavailable.
     }
 
-    const usernameMatch = username === validUsername;
-    const passwordMatch = await bcrypt.compare(password ?? '', passwordHash);
+    if (!authUser) {
+      const validUsername = process.env.AUTH_USERNAME;
+      const passwordHash = process.env.AUTH_PASSWORD_HASH;
 
-    if (!usernameMatch || !passwordMatch) {
-      // Consistent response time regardless of which check failed (prevent timing attacks)
-      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
+      if (!validUsername || !passwordHash) {
+        return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+      }
+
+      const usernameMatch = String(username || '') === validUsername;
+      const passwordMatch = await bcrypt.compare(password ?? '', passwordHash);
+
+      if (!usernameMatch || !passwordMatch) {
+        return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
+      }
+
+      authUser = {
+        username: validUsername,
+        role: 'admin',
+        userId: null,
+        name: validUsername,
+      };
     }
 
     const JWT_SECRET = new TextEncoder().encode(jwtSecret);
-    const token = await new SignJWT({ sub: username })
+    const token = await new SignJWT({
+      sub: authUser.username,
+      role: authUser.role,
+      uid: authUser.userId,
+      name: authUser.name,
+    })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('7d')

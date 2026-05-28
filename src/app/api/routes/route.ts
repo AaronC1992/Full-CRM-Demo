@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/db';
+import { ensureUserManagementSchema } from '@/lib/user-management';
 
 function parseStop(row: Record<string, unknown>) {
   return {
@@ -13,6 +14,7 @@ function parseStop(row: Record<string, unknown>) {
 export async function GET() {
   try {
     const sql = getDb();
+    await ensureUserManagementSchema(sql);
     const routes = await sql`
       SELECT rp.*, COUNT(rs.id) as stop_count
       FROM route_plans rp
@@ -30,6 +32,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const sql = getDb();
+    await ensureUserManagementSchema(sql);
     const body = await req.json();
     const {
       name = '', routeDate = '', startAddress = '', endAddress = '',
@@ -38,6 +41,7 @@ export async function POST(req: NextRequest) {
       estimatedDriveTime = '', estimatedRouteDistance = '',
       googleMapsUrl = '', appleMapsUrl = '',
       notes = '', aiSummary = '', routeGoal = '',
+      assignedUserId = null,
       stops = [],
     } = body;
     const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -47,6 +51,7 @@ export async function POST(req: NextRequest) {
       startTime, endTime, status, totalStops: stops.length,
       estimatedDriveTime, estimatedRouteDistance,
       googleMapsUrl, appleMapsUrl, notes, aiSummary, routeGoal,
+      assignedUserId,
       createdAt: ts, updatedAt: ts,
     };
     const [{ id: routeId }] = await sql`INSERT INTO route_plans ${sql(planData)} RETURNING id`;

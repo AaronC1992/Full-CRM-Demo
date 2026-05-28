@@ -80,6 +80,7 @@ export interface Lead {
   businessHours?: string;
   routeScore?: number | null;
   routeNotes?: string;
+  assignedUserId?: number | null;
 }
 
 export type LeadInsert = Omit<Lead, 'id' | 'createdDate' | 'updatedDate'>;
@@ -336,7 +337,18 @@ export interface RoutePlan {
   routeGoal: string;
   createdAt: string;
   updatedAt: string;
+  assignedUserId?: number | null;
   stops?: RouteStop[];
+}
+
+export interface AppUser {
+  id: number;
+  username: string;
+  fullName: string;
+  role: 'admin' | 'member';
+  active: boolean;
+  leadCount?: number;
+  routeCount?: number;
 }
 
 export interface RouteStop {

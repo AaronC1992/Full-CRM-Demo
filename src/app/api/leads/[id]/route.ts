@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import getDb, { isNoDbMode } from '@/lib/db';
 import { getMockLeadById } from '@/lib/mock-leads';
 import { Lead } from '@/lib/types';
+import { ensureUserManagementSchema } from '@/lib/user-management';
 
 function parseLead(row: Record<string, unknown>): Lead {
   return {
@@ -23,6 +24,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     }
 
     const sql = getDb();
+    await ensureUserManagementSchema(sql);
     const [row] = await sql`SELECT * FROM leads WHERE id = ${params.id}`;
     if (!row) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     return NextResponse.json(parseLead(row as Record<string, unknown>));
@@ -94,6 +96,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       marketingPackageInterest: body.marketingPackageInterest ?? existing.marketingPackageInterest,
       websitePackageInterest: body.websitePackageInterest ?? existing.websitePackageInterest,
       crmPackageInterest: body.crmPackageInterest ?? existing.crmPackageInterest,
+      assignedUserId: body.assignedUserId !== undefined ? body.assignedUserId : existing.assignedUserId,
       tags: tagsValue,
       updatedDate: ts,
     };

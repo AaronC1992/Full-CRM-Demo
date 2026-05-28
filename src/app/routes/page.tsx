@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
-import { Lead, RoutePlan, RouteStop } from '@/lib/types';
+import { AppUser, Lead, RoutePlan, RouteStop } from '@/lib/types';
 import { LEAD_STATUSES, PRIORITIES, INDUSTRIES, SERVICE_OPPORTUNITIES } from '@/lib/utils';
 import {
   MapPin, Navigation, Sparkles, Route, Clock, Filter, Search,
@@ -434,6 +434,8 @@ function RouteBuilderContent() {
   const [savedRouteId, setSavedRouteId] = useState<number | null>(null);
   const [savedRoutes, setSavedRoutes] = useState<(RoutePlan & { stopCount?: number })[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [assignedUserId, setAssignedUserId] = useState<number | null>(null);
 
   // Visit modal
   const [visitModalStop, setVisitModalStop] = useState<RouteStop | null>(null);
@@ -489,6 +491,13 @@ function RouteBuilderContent() {
       fetch('/api/routes').then(r => r.json()).then(data => { setSavedRoutes(Array.isArray(data) ? data : []); setHistoryLoading(false); }).catch(() => setHistoryLoading(false));
     }
   }, [tab]);
+
+  useEffect(() => {
+    fetch('/api/users')
+      .then((response) => response.ok ? response.json() : [])
+      .then((data) => setUsers(Array.isArray(data) ? data : []))
+      .catch(() => setUsers([]));
+  }, []);
 
   const filteredLeads = matchingLeads.filter(l =>
     !leadSearch || l.businessName.toLowerCase().includes(leadSearch.toLowerCase()) || l.city?.toLowerCase().includes(leadSearch.toLowerCase())
@@ -572,7 +581,7 @@ function RouteBuilderContent() {
         status: 'Generated', notes: config.notes, aiSummary: aiPlan?.summary || '',
         routeGoal: config.routeGoal || aiPlan?.routeGoal || '',
         estimatedDriveTime: routeStats.driveTime, estimatedRouteDistance: routeStats.distance,
-        googleMapsUrl: mapsUrls[0] || '', stops,
+        googleMapsUrl: mapsUrls[0] || '', assignedUserId, stops,
       };
       const res = await fetch('/api/routes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
@@ -778,6 +787,19 @@ function RouteBuilderContent() {
                 <div>
                   <label className={label}>Route Goal</label>
                   <input className={inp} value={config.routeGoal} onChange={e => setConfig(p => ({ ...p, routeGoal: e.target.value }))} placeholder="e.g. Sign 2 new clients this week" />
+                </div>
+                <div>
+                  <label className={label}>Assigned User</label>
+                  <select
+                    className={inp}
+                    value={assignedUserId ?? ''}
+                    onChange={(event) => setAssignedUserId(event.target.value ? Number(event.target.value) : null)}
+                  >
+                    <option value="">Unassigned</option>
+                    {users.filter((user) => user.active).map((user) => (
+                      <option key={user.id} value={user.id}>{user.fullName}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className={label}>Notes</label>
@@ -1129,6 +1151,7 @@ function RouteBuilderContent() {
                         {r.routeDate && <span className="flex items-center gap-1"><Calendar size={11} />{r.routeDate}</span>}
                         <span className="flex items-center gap-1"><MapPin size={11} />{r.totalStops} stops</span>
                         {r.city && <span>{r.city}, {r.state}</span>}
+                        {r.assignedUserId && <span>Owner: {users.find((u) => u.id === r.assignedUserId)?.fullName || `User ${r.assignedUserId}`}</span>}
                         {r.estimatedDriveTime && <span className="flex items-center gap-1"><Clock size={11} />{r.estimatedDriveTime}</span>}
                       </div>
                       {r.aiSummary && <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{r.aiSummary}</p>}
@@ -1147,6 +1170,7 @@ function RouteBuilderContent() {
                           setStops(data.stops || []);
                           setAiPlan({ summary: data.aiSummary, routeName: data.name, routeGoal: data.routeGoal, routeStrategy: '', followUpPlan: '', skippedLeads: [] });
                           setSavedRouteId(r.id);
+                          setAssignedUserId(data.assignedUserId ?? null);
                           setRouteStats({ driveTime: data.estimatedDriveTime, distance: data.estimatedRouteDistance });
                           setTab('route');
                         }

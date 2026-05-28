@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import getDb, { isNoDbMode } from '@/lib/db';
 import { getFilteredMockLeads } from '@/lib/mock-leads';
 import { Lead } from '@/lib/types';
+import { ensureUserManagementSchema } from '@/lib/user-management';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,6 +120,7 @@ export async function POST(req: NextRequest) {
     }
 
     const sql = getDb();
+    await ensureUserManagementSchema(sql);
     const data = {
       businessName: body.businessName || '',
       contactName: body.contactName || '',
@@ -150,6 +152,7 @@ export async function POST(req: NextRequest) {
       marketingPackageInterest: body.marketingPackageInterest || '',
       websitePackageInterest: body.websitePackageInterest || '',
       crmPackageInterest: body.crmPackageInterest || '',
+      assignedUserId: body.assignedUserId ?? null,
       tags,
       createdDate: ts,
       updatedDate: ts,

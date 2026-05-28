@@ -2,8 +2,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badge';
-import { Lead } from '@/lib/types';
+import { AppUser, Lead } from '@/lib/types';
 import { formatDate, formatCurrency, LEAD_STATUSES, PRIORITIES, INDUSTRIES } from '@/lib/utils';
+import { showToast } from '@/components/ui/Toast';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -19,6 +20,7 @@ const LEADS_COLS_KEY = 'fullcrmdemo_leads_cols';
 
 const ALL_LEADS_COLS: ColDef[] = [
   { key: 'contact', label: 'Contact' },
+  { key: 'owner', label: 'Owner' },
   { key: 'address', label: 'Address', sortKey: 'address' },
   { key: 'city', label: 'City', sortKey: 'city' },
   { key: 'state', label: 'State', sortKey: 'state' },
@@ -31,6 +33,7 @@ const ALL_LEADS_COLS: ColDef[] = [
 
 const DEFAULT_LEADS_COLS: ColState[] = [
   { key: 'contact', visible: true },
+  { key: 'owner', visible: true },
   { key: 'address', visible: false },
   { key: 'city', visible: true },
   { key: 'state', visible: false },
@@ -76,6 +79,7 @@ function LeadsContent() {
   const [sort, setSort] = useState('createdDate');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [users, setUsers] = useState<AppUser[]>([]);
 
   // Keep local filter state in sync with URL query params.
   useEffect(() => {
@@ -133,6 +137,37 @@ function LeadsContent() {
   }, [search, filterStatus, filterPriority, filterIndustry, sort, dir]);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+  useEffect(() => {
+    fetch('/api/users')
+      .then((response) => response.ok ? response.json() : [])
+      .then((data) => setUsers(Array.isArray(data) ? data : []))
+      .catch(() => setUsers([]));
+  }, []);
+
+  const assignLead = async (leadId: number, assignedUserId: number | null) => {
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedUserId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Failed to assign lead.', 'error');
+        return;
+      }
+
+      setLeads((current) => current.map((lead) => (
+        lead.id === leadId
+          ? { ...lead, assignedUserId: assignedUserId ?? null }
+          : lead
+      )));
+    } catch {
+      showToast('Failed to assign lead.', 'error');
+    }
+  };
 
   const handleSort = (col: string) => {
     if (sort === col) setDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -391,6 +426,22 @@ function LeadsContent() {
                               );
                             } else if (col.key === 'address') {
                               cell = <span className="text-gray-600 text-xs">{lead.address || '—'}</span>;
+                            } else if (col.key === 'owner') {
+                              cell = (
+                                <select
+                                  value={lead.assignedUserId ?? ''}
+                                  onChange={(event) => {
+                                    const value = event.target.value;
+                                    assignLead(lead.id, value ? Number(value) : null);
+                                  }}
+                                  className="border border-gray-200 rounded-md px-2 py-1 text-xs bg-white"
+                                >
+                                  <option value="">Unassigned</option>
+                                  {users.filter((user) => user.active).map((user) => (
+                                    <option key={user.id} value={user.id}>{user.fullName}</option>
+                                  ))}
+                                </select>
+                              );
                             } else if (col.key === 'city') {
                               cell = <span className="text-gray-600 text-xs">{lead.city || '—'}</span>;
                             } else if (col.key === 'state') {
