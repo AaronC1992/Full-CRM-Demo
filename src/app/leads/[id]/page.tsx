@@ -7,6 +7,7 @@ import { StatusBadge, PriorityBadge, TagBadge } from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { showToast } from '@/components/ui/Toast';
 import { Lead, LeadStatus, Priority, Activity, Template, Demo, Task, TaskType, TaskPriority, Deal } from '@/lib/types';
+import { LEAD_CATEGORY_OPTIONS, getLeadCategory, getLeadCategoryFromTags, setLeadCategory } from '@/lib/lead-category';
 import {
   formatDate, formatDateTime, formatCurrency,
   LEAD_STATUSES, PRIORITIES, INDUSTRIES, LEAD_SOURCES,
@@ -355,6 +356,10 @@ export default function LeadDetailPage() {
   };
 
   const set = (field: keyof Lead, value: unknown) => setEditForm(prev => ({ ...prev, [field]: value }));
+  const setCategory = (category: string) => setEditForm((prev) => ({
+    ...prev,
+    tags: setLeadCategory((prev.tags || []) as string[], category === 'Residential' || category === 'Commercial' ? category : ''),
+  }));
 
   if (loading) return (
     <AppLayout title="Lead Detail">
@@ -424,6 +429,7 @@ export default function LeadDetailPage() {
                     <StatusBadge status={lead.leadStatus} />
                     <PriorityBadge priority={lead.priority} />
                     {lead.industry && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{lead.industry}</span>}
+                    {getLeadCategory(lead) && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{getLeadCategory(lead)}</span>}
                     {lead.city && <span className="text-xs text-gray-500">{lead.city}, {lead.state}</span>}
                   </div>
                   {lead.estimatedDealValue && (
@@ -526,6 +532,13 @@ export default function LeadDetailPage() {
                     </select>
                   </div>
                   <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Category</label>
+                    <select className={inputCls} value={getLeadCategoryFromTags((editForm.tags || []) as string[])} onChange={e => setCategory(e.target.value)}>
+                      <option value="">Not set</option>
+                      {LEAD_CATEGORY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                  </div>
+                  <div>
                     <label className="text-xs text-gray-500 mb-1 block">State</label>
                     <select className={inputCls} value={editForm.state || 'MO'} onChange={e => set('state', e.target.value)}>
                       {STATES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -543,6 +556,7 @@ export default function LeadDetailPage() {
                   <InfoRow icon={Globe} label="Has Facebook?" value={lead.hasFacebookPage} />
                   <InfoRow icon={Globe} label="Website Quality" value={lead.currentWebsiteQuality} />
                   <InfoRow icon={DollarSign} label="Lead Source" value={lead.leadSource} />
+                  <InfoRow icon={Tag} label="Category" value={getLeadCategory(lead)} />
                   <InfoRow icon={Send} label="Services" value={lead.serviceOpportunity} />
                   <InfoRow icon={Tag} label="Suggested Offer" value={lead.suggestedOffer} />
                   {lead.estimatedDealValue != null && (
@@ -767,18 +781,6 @@ export default function LeadDetailPage() {
                 </div>
               </div>
             </div>
-
-            {/* Services interested in */}
-            {(lead.websitePackageInterest || lead.crmPackageInterest || lead.marketingPackageInterest) && (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-                <h3 className="font-semibold text-gray-800 text-sm mb-3">Services Interested In</h3>
-                <div className="space-y-1.5 text-sm">
-                  {lead.websitePackageInterest && <p className="text-gray-600">🌐 {lead.websitePackageInterest}</p>}
-                  {lead.crmPackageInterest && <p className="text-gray-600">⚙️ {lead.crmPackageInterest}</p>}
-                  {lead.marketingPackageInterest && <p className="text-gray-600">📣 {lead.marketingPackageInterest}</p>}
-                </div>
-              </div>
-            )}
 
             {editing && (
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-4">

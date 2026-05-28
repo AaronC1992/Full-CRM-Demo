@@ -4,6 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import ServicePricingModal from '@/components/ui/ServicePricingModal';
 import { Lead } from '@/lib/types';
+import { LEAD_CATEGORY_OPTIONS, getLeadCategory } from '@/lib/lead-category';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   buildSeedServices,
@@ -70,6 +71,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
   const [sort, setSort] = useState('updatedDate');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
   const [colState, setColState] = useState<ColState[]>(getInitialCustomersCols);
@@ -124,7 +126,8 @@ export default function CustomersPage() {
       c.state?.toLowerCase().includes(q) ||
       c.industry?.toLowerCase().includes(q);
     const matchIndustry = !filterIndustry || c.industry === filterIndustry;
-    return matchSearch && matchIndustry;
+    const matchCategory = !filterCategory || getLeadCategory(c) === filterCategory;
+    return matchSearch && matchIndustry && matchCategory;
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -217,6 +220,14 @@ export default function CustomersPage() {
               {industries.map(i => <option key={i} value={i}>{i}</option>)}
             </select>
           )}
+          <select
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={filterCategory}
+            onChange={e => setFilterCategory(e.target.value)}
+          >
+            <option value="">All Categories</option>
+            {LEAD_CATEGORY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
           <button
             onClick={() => setShowColEditor(true)}
             className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors"
@@ -258,6 +269,7 @@ export default function CustomersPage() {
             {sorted.map((customer) => {
               const services = getCustomerServices(customer);
               const summary = getServiceSummary(services);
+              const category = getLeadCategory(customer);
               return (
                 <div key={customer.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -270,6 +282,7 @@ export default function CustomersPage() {
                     <span className="rounded-full border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700">Won</span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+                    {category && <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">{category}</span>}
                     <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">Value {formatCurrency(customer.estimatedDealValue || 0)}</span>
                     <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">Services {summary.count} {summary.count > 0 ? `• ${formatCurrency(summary.total)}` : ''}</span>
                   </div>
@@ -380,7 +393,7 @@ export default function CustomersPage() {
                                 } else if (col.key === 'state') {
                                   cell = <span className="text-gray-600 text-xs">{c.state || '—'}</span>;
                                 } else if (col.key === 'industry') {
-                                  cell = <span className="text-gray-600 text-xs">{c.industry || '—'}</span>;
+                                  cell = <div className="space-y-1"><span className="text-gray-600 text-xs block">{c.industry || '—'}</span>{getLeadCategory(c) ? <span className="text-xs text-gray-400">{getLeadCategory(c)}</span> : null}</div>;
                                 } else if (col.key === 'services') {
                                   const services = getCustomerServices(c);
                                   const summary = getServiceSummary(services);

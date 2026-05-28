@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badge';
 import { AppUser, Lead } from '@/lib/types';
+import { LEAD_CATEGORY_OPTIONS, getLeadCategory } from '@/lib/lead-category';
 import { formatDate, formatCurrency, LEAD_STATUSES, PRIORITIES, INDUSTRIES } from '@/lib/utils';
 import { showToast } from '@/components/ui/Toast';
 import ServicePricingModal from '@/components/ui/ServicePricingModal';
@@ -101,6 +102,7 @@ function LeadsContent() {
   const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || '');
   const [filterPriority, setFilterPriority] = useState(searchParams.get('priority') || '');
   const [filterIndustry, setFilterIndustry] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [sort, setSort] = useState('createdDate');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
@@ -132,8 +134,10 @@ function LeadsContent() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  const displayedLeads = filterCategory ? leads.filter((lead) => getLeadCategory(lead) === filterCategory) : leads;
+
   const toggleSelect = (id: number) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const toggleSelectAll = () => setSelectedIds(prev => prev.size === leads.length ? new Set() : new Set(leads.map(l => l.id)));
+  const toggleSelectAll = () => setSelectedIds(prev => prev.size === displayedLeads.length ? new Set() : new Set(displayedLeads.map(l => l.id)));
   const buildRouteUrl = `/routes?leads=${Array.from(selectedIds).join(',')}`;  
 
   const fetchLeads = useCallback(async () => {
@@ -233,10 +237,11 @@ function LeadsContent() {
     setFilterStatus('');
     setFilterPriority('');
     setFilterIndustry('');
+    setFilterCategory('');
     router.replace('/leads');
   };
 
-  const activeFilters = [search.trim(), filterStatus, filterPriority, filterIndustry].filter(Boolean).length;
+  const activeFilters = [search.trim(), filterStatus, filterPriority, filterIndustry, filterCategory].filter(Boolean).length;
 
   return (
     <AppLayout title="Leads">
@@ -300,7 +305,7 @@ function LeadsContent() {
 
         {/* Filters panel */}
         {showFilters && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Status</label>
               <select
@@ -334,6 +339,17 @@ function LeadsContent() {
                 {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Category</label>
+              <select
+                value={filterCategory}
+                onChange={e => setFilterCategory(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Categories</option>
+                {LEAD_CATEGORY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </div>
             {activeFilters > 0 && (
               <button onClick={clearFilters} className="text-xs text-red-500 flex items-center gap-1 hover:underline">
                 <X size={12} /> Clear filters
@@ -348,7 +364,7 @@ function LeadsContent() {
             {loading ? 'Loading...' : (
               <>
                 {refreshing && <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin inline-block" />}
-                {`${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
+                {`${displayedLeads.length} lead${displayedLeads.length !== 1 ? 's' : ''}`}
                 {selectedIds.size > 0 && <span className="ml-2 text-blue-600 font-medium">{selectedIds.size} selected</span>}
               </>
             )}
@@ -373,6 +389,7 @@ function LeadsContent() {
               {filterStatus ? ` • Status: ${filterStatus}` : ''}
               {filterPriority ? ` • Priority: ${filterPriority}` : ''}
               {filterIndustry ? ` • Industry: ${filterIndustry}` : ''}
+              {filterCategory ? ` • Category: ${filterCategory}` : ''}
               {search.trim() ? ` • Search: "${search.trim()}"` : ''}
             </p>
             <button
@@ -386,14 +403,15 @@ function LeadsContent() {
 
         {simpleView ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {leads.length === 0 && (
+            {displayedLeads.length === 0 && (
               <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm py-10 text-center text-gray-500 text-sm">
                 No leads found. Add a lead to get started.
               </div>
             )}
-            {leads.map((lead) => {
+            {displayedLeads.map((lead) => {
               const services = getLeadServices(lead);
               const summary = getServiceSummary(services);
+              const category = getLeadCategory(lead);
               return (
                 <div key={lead.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -407,6 +425,11 @@ function LeadsContent() {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                     <PriorityBadge priority={lead.priority} size="sm" />
+                    {category && (
+                      <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-gray-600">
+                        {category}
+                      </span>
+                    )}
                     <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-gray-600">
                       Value {formatCurrency(lead.estimatedDealValue || 0)}
                     </span>
@@ -474,7 +497,7 @@ function LeadsContent() {
                           </td>
                         </tr>
                       )}
-                      {!loading && leads.length === 0 && (
+                      {!loading && displayedLeads.length === 0 && (
                         <tr>
                           <td colSpan={colSpan} className="text-center py-12 text-gray-400">
                             <UserX size={32} className="mx-auto mb-2 opacity-30" />
@@ -485,7 +508,7 @@ function LeadsContent() {
                           </td>
                         </tr>
                       )}
-                      {leads.map(lead => (
+                      {displayedLeads.map(lead => (
                         <tr key={lead.id} className={`hover:bg-gray-50 transition-colors group ${selectedIds.has(lead.id) ? 'bg-blue-50/50' : ''}`}>
                           <td className="px-4 py-3">
                             <button onClick={() => toggleSelect(lead.id)} className="text-gray-400 hover:text-blue-600">
@@ -550,7 +573,7 @@ function LeadsContent() {
                             } else if (col.key === 'state') {
                               cell = <span className="text-gray-600 text-xs">{lead.state || '—'}</span>;
                             } else if (col.key === 'industry') {
-                              cell = <span className="text-gray-600 text-xs">{lead.industry || '—'}</span>;
+                              cell = <div className="space-y-1"><span className="text-gray-600 text-xs block">{lead.industry || '—'}</span>{getLeadCategory(lead) ? <span className="text-xs text-gray-400">{getLeadCategory(lead)}</span> : null}</div>;
                             } else if (col.key === 'services') {
                               const services = getLeadServices(lead);
                               const summary = getServiceSummary(services);

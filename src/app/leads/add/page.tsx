@@ -4,6 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { showToast } from '@/components/ui/Toast';
 import { Lead, LeadStatus, Priority } from '@/lib/types';
+import { LEAD_CATEGORY_OPTIONS, getLeadCategoryFromTags, setLeadCategory } from '@/lib/lead-category';
 import { LEAD_STATUSES, PRIORITIES, INDUSTRIES, LEAD_SOURCES, STATES, WEBSITE_QUALITY_OPTIONS } from '@/lib/utils';
 import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 import { useRouter } from 'next/navigation';
@@ -127,6 +128,10 @@ export default function AddLeadPage() {
     set('tags', ((form.tags || []) as string[]).filter(t => t !== tag));
   };
 
+  const setCategory = (category: string) => {
+    set('tags', setLeadCategory((form.tags || []) as string[], category === 'Residential' || category === 'Commercial' ? category : ''));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.businessName?.trim()) {
@@ -196,6 +201,12 @@ export default function AddLeadPage() {
               <select className={inputCls} value={form.industry || ''} onChange={e => set('industry', e.target.value)}>
                 <option value="">Select industry...</option>
                 {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </Field>
+            <Field label="Category">
+              <select className={inputCls} value={getLeadCategoryFromTags((form.tags || []) as string[])} onChange={e => setCategory(e.target.value)}>
+                <option value="">All property types</option>
+                {LEAD_CATEGORY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
             </Field>
             <Field label="Lead Status">
