@@ -6,7 +6,7 @@ import {
   CheckSquare, Settings, Sparkles,
   MessageSquare, X, BarChart3, MapPin, CalendarDays, UserCheck,
   ClipboardList, ReceiptText, FileText, Megaphone, Star, LineChart, Blocks, Layers,
-  Bell, Smartphone, CreditCard, Gauge, Wrench,
+  Bell, Smartphone, CreditCard, Gauge, Wrench, BookOpen,
 } from 'lucide-react';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { DemoModuleKey } from '@/lib/demo-mode';
@@ -20,6 +20,7 @@ type NavItem = {
 
 const MAIN_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/features', label: 'Features', icon: BookOpen },
   { href: '/customers', label: 'Customers', icon: UserCheck, module: 'customers' },
   { href: '/leads', label: 'Leads', icon: Users },
   { href: '/lead-scoring', label: 'Lead scoring', icon: Gauge, module: 'lead-scoring' },
