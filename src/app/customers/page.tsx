@@ -16,6 +16,7 @@ import {
   ServicePricingMap,
   setServiceItems,
 } from '@/lib/service-pricing';
+import { calculateEstimatedValue, loadServiceCatalog, parseSelectedServices, ServiceCatalogItem } from '@/lib/service-catalog';
 import Link from 'next/link';
 import ColumnEditor, { ColDef, ColState, mergeColState } from '@/components/ui/ColumnEditor';
 import {
@@ -78,6 +79,7 @@ export default function CustomersPage() {
   const [showColEditor, setShowColEditor] = useState(false);
   const [simpleView, setSimpleView] = useState(getInitialSimpleView);
   const [serviceMap, setServiceMap] = useState<ServicePricingMap>({});
+  const [servicePricing, setServicePricing] = useState<ServiceCatalogItem[]>([]);
   const [editingCustomer, setEditingCustomer] = useState<Lead | null>(null);
 
   const fetchCustomers = useCallback(async () => {
@@ -98,6 +100,17 @@ export default function CustomersPage() {
   }, []);
 
   useEffect(() => {
+    const sync = () => setServicePricing(loadServiceCatalog());
+    sync();
+    window.addEventListener('storage', sync);
+    window.addEventListener('fullcrm-services-updated', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('fullcrm-services-updated', sync);
+    };
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem(CUSTOMERS_SIMPLE_VIEW_KEY, simpleView ? '1' : '0');
     } catch {
@@ -114,6 +127,10 @@ export default function CustomersPage() {
   };
 
   const getCustomerServices = (lead: Lead): ServiceLineItem[] => getServiceItems(serviceMap, lead.id);
+  const getCustomerEstimatedValue = (lead: Lead): number | null => {
+    const computed = calculateEstimatedValue(parseSelectedServices(lead.serviceOpportunity), servicePricing);
+    return computed > 0 ? computed : (lead.estimatedDealValue ?? null);
+  };
 
   const industries = [...new Set(customers.map(c => c.industry).filter(Boolean))].sort();
 
@@ -155,7 +172,7 @@ export default function CustomersPage() {
     return dir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />;
   };
 
-  const totalValue = customers.reduce((sum, c) => sum + (c.estimatedDealValue || 0), 0);
+  const totalValue = customers.reduce((sum, c) => sum + (getCustomerEstimatedValue(c) || 0), 0);
   const thisMonth = new Date().toISOString().substring(0, 7);
   const wonThisMonth = customers.filter(c => c.updatedDate?.startsWith(thisMonth)).length;
 
@@ -283,7 +300,7 @@ export default function CustomersPage() {
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
                     {category && <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">{category}</span>}
-                    <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">Value {formatCurrency(customer.estimatedDealValue || 0)}</span>
+                    <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">Value {formatCurrency(getCustomerEstimatedValue(customer) || 0)}</span>
                     <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">Services {summary.count} {summary.count > 0 ? `• ${formatCurrency(summary.total)}` : ''}</span>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
@@ -410,7 +427,8 @@ export default function CustomersPage() {
                                     </div>
                                   );
                                 } else if (col.key === 'value') {
-                                  cell = <span className="text-gray-700 text-xs font-medium">{c.estimatedDealValue ? formatCurrency(c.estimatedDealValue) : '—'}</span>;
+                                  const value = getCustomerEstimatedValue(c);
+                                  cell = <span className="text-gray-700 text-xs font-medium">{value ? formatCurrency(value) : '—'}</span>;
                                 } else if (col.key === 'wonDate') {
                                   cell = c.updatedDate ? (
                                     <span className="flex items-center gap-1 text-xs text-gray-500">

@@ -7,6 +7,7 @@ import { Lead, LeadStatus, Priority } from '@/lib/types';
 import { LEAD_CATEGORY_OPTIONS, getLeadCategoryFromTags, setLeadCategory } from '@/lib/lead-category';
 import { LEAD_STATUSES, PRIORITIES, INDUSTRIES, LEAD_SOURCES, STATES, WEBSITE_QUALITY_OPTIONS } from '@/lib/utils';
 import { getIndustryServiceCatalog } from '@/lib/demo-mode';
+import { calculateEstimatedValue, loadServiceCatalog, parseSelectedServices, ServiceCatalogItem } from '@/lib/service-catalog';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronUp, Save, RotateCcw } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -93,6 +94,7 @@ export default function AddLeadPage() {
   const [form, setForm] = useState<Partial<Lead>>(EMPTY);
   const [advanced, setAdvanced] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [servicePricing, setServicePricing] = useState<ServiceCatalogItem[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [existingTags, setExistingTags] = useState<string[]>([]);
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
@@ -111,6 +113,27 @@ export default function AddLeadPage() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    const sync = () => setServicePricing(loadServiceCatalog());
+    sync();
+    window.addEventListener('storage', sync);
+    window.addEventListener('fullcrm-services-updated', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('fullcrm-services-updated', sync);
+    };
+  }, []);
+
+  useEffect(() => {
+    const selectedServices = parseSelectedServices(form.serviceOpportunity);
+    const computed = calculateEstimatedValue(selectedServices, servicePricing);
+    setForm((prev) => {
+      const nextValue = computed > 0 ? computed : null;
+      if ((prev.estimatedDealValue ?? null) === nextValue) return prev;
+      return { ...prev, estimatedDealValue: nextValue };
+    });
+  }, [form.serviceOpportunity, servicePricing]);
 
   const set = (field: keyof Lead, value: unknown) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -159,10 +182,15 @@ export default function AddLeadPage() {
   const doSave = async () => {
     setSaving(true);
     try {
+      const selectedServices = parseSelectedServices(form.serviceOpportunity);
+      const computed = calculateEstimatedValue(selectedServices, servicePricing);
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          estimatedDealValue: computed > 0 ? computed : null,
+        }),
       });
       if (!res.ok) throw new Error();
       const lead = await res.json();
@@ -292,7 +320,8 @@ export default function AddLeadPage() {
                   </select>
                 </Field>
                 <Field label="Estimated Monthly Value ($)">
-                  <input className={inputCls} type="number" value={form.estimatedDealValue ?? ''} onChange={e => set('estimatedDealValue', e.target.value ? Number(e.target.value) : null)} placeholder="1500" />
+                  <input className={inputCls} type="number" value={form.estimatedDealValue ?? ''} readOnly placeholder="Set from selected services" />
+                  <p className="mt-1 text-xs text-gray-500">Calculated from selected services. Manage prices on the Services page.</p>
                 </Field>
                 <div className="sm:col-span-2">
                   <MultiSelectChips

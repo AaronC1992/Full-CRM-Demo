@@ -6,7 +6,7 @@ import {
   CheckSquare, Settings, Sparkles,
   MessageSquare, X, BarChart3, MapPin, CalendarDays, UserCheck,
   ClipboardList, ReceiptText, FileText, Megaphone, Star, LineChart, Blocks, Layers,
-  Bell, Smartphone, CreditCard, Gauge,
+  Bell, Smartphone, CreditCard, Gauge, Wrench,
 } from 'lucide-react';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { DemoModuleKey } from '@/lib/demo-mode';
@@ -31,6 +31,7 @@ const MAIN_NAV: NavItem[] = [
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/routes', label: 'Routes', icon: MapPin, module: 'route-builder' },
   { href: '/automations', label: 'Automations', icon: Sparkles, module: 'automations' },
+  { href: '/services', label: 'Services', icon: Wrench },
   { href: '/notifications', label: 'Notifications', icon: Bell, module: 'notifications' },
   { href: '/field-mode', label: 'Field mode', icon: Smartphone, module: 'field-mode' },
   { href: '/marketing', label: 'Marketing', icon: Megaphone, module: 'marketing-dashboard' },

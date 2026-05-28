@@ -17,6 +17,7 @@ import {
   ServicePricingMap,
   setServiceItems,
 } from '@/lib/service-pricing';
+import { calculateEstimatedValue, loadServiceCatalog, parseSelectedServices, ServiceCatalogItem } from '@/lib/service-catalog';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -96,6 +97,7 @@ function LeadsContent() {
   const [showColEditor, setShowColEditor] = useState(false);
   const [simpleView, setSimpleView] = useState(getInitialSimpleView);
   const [serviceMap, setServiceMap] = useState<ServicePricingMap>({});
+  const [servicePricing, setServicePricing] = useState<ServiceCatalogItem[]>([]);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const leadsRef = useRef<Lead[]>([]);
   leadsRef.current = leads;
@@ -180,6 +182,17 @@ function LeadsContent() {
   }, []);
 
   useEffect(() => {
+    const sync = () => setServicePricing(loadServiceCatalog());
+    sync();
+    window.addEventListener('storage', sync);
+    window.addEventListener('fullcrm-services-updated', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('fullcrm-services-updated', sync);
+    };
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem(LEADS_SIMPLE_VIEW_KEY, simpleView ? '1' : '0');
     } catch {
@@ -193,6 +206,11 @@ function LeadsContent() {
       saveServicePricingMap(next);
       return next;
     });
+  };
+
+  const getLeadEstimatedValue = (lead: Lead): number | null => {
+    const computed = calculateEstimatedValue(parseSelectedServices(lead.serviceOpportunity), servicePricing);
+    return computed > 0 ? computed : (lead.estimatedDealValue ?? null);
   };
 
   const getLeadServices = (lead: Lead): ServiceLineItem[] => getServiceItems(serviceMap, lead.id);
@@ -431,7 +449,7 @@ function LeadsContent() {
                       </span>
                     )}
                     <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-gray-600">
-                      Value {formatCurrency(lead.estimatedDealValue || 0)}
+                      Value {formatCurrency(getLeadEstimatedValue(lead) || 0)}
                     </span>
                     <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-gray-600">
                       Services {summary.count} {summary.count > 0 ? `• ${formatCurrency(summary.total)}` : ''}
@@ -603,7 +621,8 @@ function LeadsContent() {
                             } else if (col.key === 'priority') {
                               cell = <PriorityBadge priority={lead.priority} size="sm" />;
                             } else if (col.key === 'value') {
-                              cell = <span className="text-gray-600 text-xs font-medium">{lead.estimatedDealValue ? formatCurrency(lead.estimatedDealValue) : '—'}</span>;
+                              const value = getLeadEstimatedValue(lead);
+                              cell = <span className="text-gray-600 text-xs font-medium">{value ? formatCurrency(value) : '—'}</span>;
                             } else if (col.key === 'followUp') {
                               cell = lead.nextFollowUpDate ? (
                                 <span className={`text-xs ${new Date(lead.nextFollowUpDate) < new Date() ? 'text-red-500 font-medium' : 'text-gray-500'}`}>

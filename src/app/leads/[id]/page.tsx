@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal';
 import { showToast } from '@/components/ui/Toast';
 import { Lead, LeadStatus, Priority, Activity, Template, Demo, Task, TaskType, TaskPriority, Deal } from '@/lib/types';
 import { LEAD_CATEGORY_OPTIONS, getLeadCategory, getLeadCategoryFromTags, setLeadCategory } from '@/lib/lead-category';
+import { calculateEstimatedValue, loadServiceCatalog, parseSelectedServices, ServiceCatalogItem } from '@/lib/service-catalog';
 import {
   formatDate, formatDateTime, formatCurrency,
   LEAD_STATUSES, PRIORITIES, INDUSTRIES, LEAD_SOURCES,
@@ -133,6 +134,7 @@ export default function LeadDetailPage() {
   const [newTask, setNewTask] = useState<Partial<Task>>({});
   const [showNewDemoModal, setShowNewDemoModal] = useState(false);
   const [newDemo, setNewDemo] = useState<Partial<Demo>>({});
+  const [servicePricing, setServicePricing] = useState<ServiceCatalogItem[]>([]);
 
   const fetchAll = useCallback(async () => {
     const [leadRes, activityRes, templateRes, demoRes, taskRes] = await Promise.all([
@@ -164,13 +166,29 @@ export default function LeadDetailPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => {
+    const sync = () => setServicePricing(loadServiceCatalog());
+    sync();
+    window.addEventListener('storage', sync);
+    window.addEventListener('fullcrm-services-updated', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('fullcrm-services-updated', sync);
+    };
+  }, []);
+
   const save = async () => {
     if (!lead) return;
     setSaving(true);
     try {
+      const selectedServices = parseSelectedServices(editForm.serviceOpportunity);
+      const computedValue = calculateEstimatedValue(selectedServices, servicePricing);
       const res = await fetch(`/api/leads/${lead.id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({
+          ...editForm,
+          estimatedDealValue: computedValue > 0 ? computedValue : null,
+        }),
       });
       if (!res.ok) throw new Error();
       const updated = await res.json();
@@ -180,6 +198,11 @@ export default function LeadDetailPage() {
       fetchAll();
     } catch { showToast('Failed to save.', 'error'); }
     setSaving(false);
+  };
+
+  const getEffectiveEstimatedValue = (selectedLead: Pick<Lead, 'serviceOpportunity' | 'estimatedDealValue'>): number | null => {
+    const computed = calculateEstimatedValue(parseSelectedServices(selectedLead.serviceOpportunity), servicePricing);
+    return computed > 0 ? computed : (selectedLead.estimatedDealValue ?? null);
   };
 
   const markContacted = async () => {
@@ -229,7 +252,7 @@ export default function LeadDetailPage() {
       body: JSON.stringify({ leadId: lead.id, type: 'won', description: '🎉 Deal marked as WON!' }),
     });
     showToast('🎉 Deal marked as WON!');
-    setNewDeal({ businessName: lead.businessName, leadId: lead.id, dealStage: 'Won', oneTimeSetupValue: lead.estimatedDealValue ?? undefined, notes: '' });
+    setNewDeal({ businessName: lead.businessName, leadId: lead.id, dealStage: 'Won', oneTimeSetupValue: getEffectiveEstimatedValue(lead) ?? undefined, notes: '' });
     setShowCreateDealModal(true);
     fetchAll();
   };
@@ -361,6 +384,16 @@ export default function LeadDetailPage() {
     tags: setLeadCategory((prev.tags || []) as string[], category === 'Residential' || category === 'Commercial' ? category : ''),
   }));
 
+  useEffect(() => {
+    const selectedServices = parseSelectedServices(editForm.serviceOpportunity);
+    const computed = calculateEstimatedValue(selectedServices, servicePricing);
+    setEditForm((prev) => {
+      const nextValue = computed > 0 ? computed : null;
+      if ((prev.estimatedDealValue ?? null) === nextValue) return prev;
+      return { ...prev, estimatedDealValue: nextValue };
+    });
+  }, [editForm.serviceOpportunity, servicePricing]);
+
   if (loading) return (
     <AppLayout title="Lead Detail">
       <div className="flex items-center justify-center h-64">
@@ -432,8 +465,8 @@ export default function LeadDetailPage() {
                     {getLeadCategory(lead) && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{getLeadCategory(lead)}</span>}
                     {lead.city && <span className="text-xs text-gray-500">{lead.city}, {lead.state}</span>}
                   </div>
-                  {lead.estimatedDealValue && (
-                    <p className="text-sm font-semibold text-green-600 mt-1">{formatCurrency(lead.estimatedDealValue)} estimated</p>
+                  {getEffectiveEstimatedValue(lead) && (
+                    <p className="text-sm font-semibold text-green-600 mt-1">{formatCurrency(getEffectiveEstimatedValue(lead))} estimated</p>
                   )}
                 </>
               ) : (
@@ -559,8 +592,8 @@ export default function LeadDetailPage() {
                   <InfoRow icon={Tag} label="Category" value={getLeadCategory(lead)} />
                   <InfoRow icon={Send} label="Services" value={lead.serviceOpportunity} />
                   <InfoRow icon={Tag} label="Suggested Offer" value={lead.suggestedOffer} />
-                  {lead.estimatedDealValue != null && (
-                    <InfoRow icon={DollarSign} label="Est. Monthly Value" value={formatCurrency(lead.estimatedDealValue)} />
+                  {getEffectiveEstimatedValue(lead) != null && (
+                    <InfoRow icon={DollarSign} label="Est. Monthly Value" value={formatCurrency(getEffectiveEstimatedValue(lead))} />
                   )}
                 </div>
               ) : (
@@ -594,7 +627,8 @@ export default function LeadDetailPage() {
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">Estimated Monthly Value ($)</label>
-                    <input className={inputCls} type="number" value={editForm.estimatedDealValue ?? ''} onChange={e => set('estimatedDealValue', e.target.value ? Number(e.target.value) : null)} />
+                    <input className={inputCls} type="number" value={editForm.estimatedDealValue ?? ''} readOnly />
+                    <p className="mt-1 text-xs text-gray-500">Calculated from selected services. Manage prices on the Services page.</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">Lead Source</label>
@@ -751,10 +785,10 @@ export default function LeadDetailPage() {
                   <span className="text-gray-500">Priority</span>
                   <PriorityBadge priority={lead.priority} size="sm" />
                 </div>
-                {lead.estimatedDealValue != null && (
+                {getEffectiveEstimatedValue(lead) != null && (
                   <div className="flex justify-between">
                     <span className="text-gray-500">Est. Monthly Value</span>
-                    <span className="font-medium text-green-600">{formatCurrency(lead.estimatedDealValue)}</span>
+                    <span className="font-medium text-green-600">{formatCurrency(getEffectiveEstimatedValue(lead))}</span>
                   </div>
                 )}
                 {lead.lastContactedDate && (
