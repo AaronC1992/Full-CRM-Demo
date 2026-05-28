@@ -30,7 +30,7 @@ export default function ServicesPage() {
     if (merged.length !== existing.length) {
       saveServiceCatalog(merged);
     }
-  }, [modeCatalog.serviceOptions]);
+  }, [industry]);
 
   const totalActiveValue = useMemo(
     () => services.reduce((sum, item) => item.active ? sum + item.value : sum, 0),
@@ -50,7 +50,7 @@ export default function ServicesPage() {
       return;
     }
 
-    const value = Number(newValue || 0);
+    const value = Number(newValue);
     const next = [...services, createServiceCatalogItem(name, value)];
     setServices(next);
     setNewName('');
@@ -171,7 +171,10 @@ export default function ServicesPage() {
                         type="number"
                         min={0}
                         value={item.value}
-                        onChange={(event) => updateService(item.id, { value: Number(event.target.value || 0) })}
+                        onChange={(event) => {
+                          const parsed = Number(event.target.value);
+                          updateService(item.id, { value: Number.isFinite(parsed) ? parsed : 0 });
+                        }}
                       />
                     </td>
                     <td className="px-4 py-3 text-right">
