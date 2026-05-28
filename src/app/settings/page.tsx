@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Users, Plus, Edit3, Trash2, Link2 } from 'lucide-react';
+import { Save, Users, Plus, Edit3, Trash2, Link2, CreditCard, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
@@ -398,6 +399,32 @@ export default function SettingsPage() {
 
           <div className="mt-4 text-xs text-gray-500">
             Team members, custom fields, pipeline stages, and service types can be tuned per client during implementation.
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="font-semibold text-gray-800">Billing and subscription</h2>
+              <p className="text-sm text-gray-500 mt-1">This is the CRM plan area, where the account owner can review the subscription and request changes.</p>
+            </div>
+            <Link href="/settings/billing" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+              <CreditCard size={15} /> Open subscription page <ArrowRight size={15} />
+            </Link>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3 mt-4 text-sm">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Current plan</p>
+              <p className="font-semibold text-gray-900 mt-1">Growth</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Next renewal</p>
+              <p className="font-semibold text-gray-900 mt-1">Jun 1, 2026</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Plan status</p>
+              <p className="font-semibold text-gray-900 mt-1">Active</p>
+            </div>
           </div>
         </div>
 

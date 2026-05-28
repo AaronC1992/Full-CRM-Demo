@@ -99,7 +99,7 @@ export const DEMO_MODULES: DemoModuleDefinition[] = [
   { key: 'team-management', label: 'Team management', route: '/settings', category: 'Admin', description: 'Users, permissions, and performance overview.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'reports', label: 'Reports', route: '/reports', category: 'Admin', description: 'Revenue, conversion, retention, and activity reports.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'ai-assistant', label: 'AI assistant', route: '/ai-helper', category: 'Automation', description: 'Suggested actions, writing support, and summaries.', monthlyWeight: 99, setupWeight: 900 },
-  { key: 'billing', label: 'Billing', route: '/billing', category: 'Admin', description: 'Subscription plans, invoices, and payment details.', monthlyWeight: 49, setupWeight: 350 },
+  { key: 'billing', label: 'Customer billing', route: '/billing', category: 'Operations', description: 'Customer invoices, payment collection, and receipt tracking.', monthlyWeight: 49, setupWeight: 350 },
   { key: 'website-lead-forms', label: 'Website lead forms', route: '/marketing', category: 'Growth', description: 'Lead capture forms and source tracking.', monthlyWeight: 39, setupWeight: 300 },
   { key: 'landing-pages', label: 'Landing pages', route: '/marketing', category: 'Growth', description: 'Campaign pages and conversion ideas.', monthlyWeight: 49, setupWeight: 350 },
   { key: 'service-area-pages', label: 'Service area pages', route: '/marketing', category: 'Growth', description: 'Local city pages and local SEO checklist.', monthlyWeight: 49, setupWeight: 350 },

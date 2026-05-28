@@ -38,7 +38,7 @@ const MAIN_NAV: NavItem[] = [
   { href: '/reports', label: 'Reports', icon: LineChart, module: 'reports' },
   { href: '/ai-helper', label: 'AI Assistant', icon: Sparkles, module: 'ai-assistant' },
   { href: '/customer-portal', label: 'Customer Portal', icon: Layers, module: 'customer-portal' },
-  { href: '/billing', label: 'Billing', icon: CreditCard, module: 'billing' },
+  { href: '/billing', label: 'Customer Billing', icon: CreditCard, module: 'billing' },
   { href: '/feature-builder', label: 'Feature Builder', icon: Blocks },
   { href: '/package-builder', label: 'Package Builder', icon: MessageSquare },
   { href: '/settings', label: 'Settings', icon: Settings },

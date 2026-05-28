@@ -149,22 +149,22 @@ export default function BillingPage() {
 
   if (!enabledModules.billing) {
     return (
-      <AppLayout title="Billing">
+      <AppLayout title="Customer Billing">
         <ModuleGate title="Billing" description="Enable Billing in Feature Builder to show subscription tools." />
       </AppLayout>
     );
   }
 
   return (
-    <AppLayout title="Billing">
+    <AppLayout title="Customer Billing">
       <div className="space-y-5">
         <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-4">
           <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl p-5 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-wide text-sky-300">Subscription management</p>
-                <h2 className="text-2xl font-bold mt-1">Keep plan, invoice, and payment details in one place</h2>
-                <p className="text-sm text-slate-300 mt-2 max-w-xl">This is a demo billing workspace for package reviews, recurring plans, and invoice status tracking.</p>
+                <p className="text-xs uppercase tracking-wide text-sky-300">Customer billing</p>
+                <h2 className="text-2xl font-bold mt-1">Send bills and collect customer payments</h2>
+                <p className="text-sm text-slate-300 mt-2 max-w-xl">This mock Stripe billing workspace is for customer invoices, payment links, receipts, and overdue tracking.</p>
               </div>
               <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center">
                 <WalletCards size={26} className="text-sky-300" />
@@ -172,16 +172,16 @@ export default function BillingPage() {
             </div>
             <div className="grid grid-cols-3 gap-3 mt-5">
               <div className="bg-white/10 border border-white/10 rounded-xl p-3">
-                <p className="text-xs text-slate-300">Current plan</p>
-                <p className="text-xl font-bold mt-1">Growth</p>
+                <p className="text-xs text-slate-300">Active customers</p>
+                <p className="text-xl font-bold mt-1">24</p>
               </div>
               <div className="bg-white/10 border border-white/10 rounded-xl p-3">
-                <p className="text-xs text-slate-300">Next invoice</p>
-                <p className="text-xl font-bold mt-1">Jun 1</p>
+                <p className="text-xs text-slate-300">Open invoices</p>
+                <p className="text-xl font-bold mt-1">{openCount}</p>
               </div>
               <div className="bg-white/10 border border-white/10 rounded-xl p-3">
-                <p className="text-xs text-slate-300">Status</p>
-                <p className="text-xl font-bold mt-1">{state.config.connected ? 'Connected' : 'Not connected'}</p>
+                <p className="text-xs text-slate-300">Paid invoices</p>
+                <p className="text-xl font-bold mt-1">{paidCount}</p>
               </div>
             </div>
           </div>
@@ -399,7 +399,7 @@ export default function BillingPage() {
               ))}
             </div>
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 text-sm text-gray-700">
-              Billing in this demo focuses on subscription planning, invoice status, and package scoping rather than live payment processing.
+              Billing in this demo focuses on customer invoicing, payment collection, and receipt tracking rather than live payment processing.
             </div>
             <div className="rounded-xl bg-slate-900 text-white p-4 text-sm">
               <p className="font-semibold">Webhook event log</p>
