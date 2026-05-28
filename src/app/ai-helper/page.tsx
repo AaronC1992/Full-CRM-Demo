@@ -5,6 +5,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import { Sparkles, RefreshCw, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
+import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 
 interface LeadSnapshot {
   businessName: string;
@@ -42,14 +43,9 @@ const EMPTY: LeadSnapshot = {
   estimatedBudget: '$1,000-$2,500',
 };
 
-const SERVICES_OPTIONS = [
-  'Website redesign', 'New website', 'Local SEO',
-  'Social media management', 'Facebook Ads', 'Google Ads',
-  'Custom CRM', 'Lead generation', 'Full bundle',
-];
-
 export default function AIHelperPage() {
-  const { industryOption } = useDemoMode();
+  const { industry, industryOption } = useDemoMode();
+  const serviceCatalog = getIndustryServiceCatalog(industry);
   const [mode, setMode] = useState<'pitch' | 'research'>('pitch');
   const [lead, setLead] = useState<LeadSnapshot>(EMPTY);
   const [pitchResult, setPitchResult] = useState('');
@@ -66,7 +62,7 @@ export default function AIHelperPage() {
   function buildAssistantMock(action: string): string {
     switch (action) {
       case 'summarize-customer':
-        return `Customer summary\nProfile: ${industryOption.shortLabel} account with high close potential.\nOpen work: 2 tasks and 1 pending estimate.\nRisk: Follow up timing is inconsistent.\nOpportunity: Upsell reporting and review automation.`;
+        return `Customer summary\nProfile: ${industryOption.shortLabel} account with high close potential.\nOpen work: 2 tasks and 1 pending estimate.\nRisk: Follow up timing is inconsistent.\nOpportunity: Upsell ${serviceCatalog.marketingOptions[0].toLowerCase()} and ${serviceCatalog.crmOptions[0].toLowerCase()}.`;
       case 'write-followup':
         return 'Hi there, quick follow up from the Full CRM Demo team. We prepared a custom workflow that can help you respond faster and close more jobs. Would you like a short walkthrough this week?';
       case 'next-action':
@@ -244,7 +240,7 @@ export default function AIHelperPage() {
                   <label className="text-xs text-gray-500 mb-1 block">Services of Interest</label>
                   <select className={inp} value={lead.services} onChange={e => setLead(p => ({ ...p, services: e.target.value }))}>
                     <option value="">Select...</option>
-                    {SERVICES_OPTIONS.map(s => <option key={s}>{s}</option>)}
+                    {serviceCatalog.serviceOptions.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div className="sm:col-span-2">

@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import Modal from '@/components/ui/Modal';
 import { showToast } from '@/components/ui/Toast';
 import { Package } from '@/lib/types';
+import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 import { formatCurrency } from '@/lib/utils';
 import { Plus, Edit3, Trash2, Check } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -14,6 +16,8 @@ const EMPTY: Partial<Package> = {
 };
 
 export default function PackagesPage() {
+  const { industry } = useDemoMode();
+  const serviceCatalog = getIndustryServiceCatalog(industry);
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -127,7 +131,7 @@ export default function PackagesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
               <label className="text-xs text-gray-500 mb-1 block">Package Name <span className="text-red-500">*</span></label>
-              <input className={inp} value={editPkg.packageName || ''} onChange={e => setEditPkg(p => ({ ...p, packageName: e.target.value }))} placeholder="Starter Website Package" />
+              <input className={inp} value={editPkg.packageName || ''} onChange={e => setEditPkg(p => ({ ...p, packageName: e.target.value }))} placeholder={serviceCatalog.packageNamePlaceholder} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">One-Time Setup Price ($)</label>
@@ -150,7 +154,7 @@ export default function PackagesPage() {
                 value={featureInput}
                 onChange={e => setFeatureInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addFeature(); } }}
-                placeholder="Mobile responsive design"
+                placeholder={serviceCatalog.packageFeaturePlaceholder}
               />
               <button type="button" onClick={addFeature} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Add</button>
             </div>

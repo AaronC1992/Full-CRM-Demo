@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { showToast } from '@/components/ui/Toast';
 import { Lead, LeadStatus, Priority } from '@/lib/types';
-import { LEAD_STATUSES, PRIORITIES, INDUSTRIES, LEAD_SOURCES, STATES, WEBSITE_QUALITY_OPTIONS, SERVICE_OPPORTUNITIES } from '@/lib/utils';
+import { LEAD_STATUSES, PRIORITIES, INDUSTRIES, LEAD_SOURCES, STATES, WEBSITE_QUALITY_OPTIONS } from '@/lib/utils';
+import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronUp, Save, RotateCcw } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -34,8 +36,59 @@ function Field({ label, required, children }: { label: string; required?: boolea
 const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-300";
 const textareaCls = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder:text-gray-300";
 
+function parseMultiValue(value?: string | null) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function toggleMultiValue(currentValue: string | undefined, nextValue: string) {
+  const current = parseMultiValue(currentValue);
+  return current.includes(nextValue)
+    ? current.filter((item) => item !== nextValue).join(', ')
+    : [...current, nextValue].join(', ');
+}
+
+function MultiSelectChips({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value?: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const selected = parseMultiValue(value);
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const active = selected.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onChange(toggleMultiValue(value, option))}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${active ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AddLeadPage() {
   const router = useRouter();
+  const { industry } = useDemoMode();
+  const serviceCatalog = getIndustryServiceCatalog(industry);
   const [form, setForm] = useState<Partial<Lead>>(EMPTY);
   const [advanced, setAdvanced] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -230,15 +283,17 @@ export default function AddLeadPage() {
                 <Field label="Estimated Monthly Value ($)">
                   <input className={inputCls} type="number" value={form.estimatedDealValue ?? ''} onChange={e => set('estimatedDealValue', e.target.value ? Number(e.target.value) : null)} placeholder="1500" />
                 </Field>
-                <Field label="Service Opportunity">
-                  <select className={inputCls} value={form.serviceOpportunity || ''} onChange={e => set('serviceOpportunity', e.target.value)}>
-                    <option value="">Select...</option>
-                    {SERVICE_OPPORTUNITIES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </Field>
+                <div className="sm:col-span-2">
+                  <MultiSelectChips
+                    label="Services"
+                    value={form.serviceOpportunity || ''}
+                    options={serviceCatalog.serviceOptions}
+                    onChange={(value) => set('serviceOpportunity', value)}
+                  />
+                </div>
                 <div className="sm:col-span-2">
                   <Field label="Suggested Offer">
-                    <input className={inputCls} value={form.suggestedOffer || ''} onChange={e => set('suggestedOffer', e.target.value)} placeholder="Starter Website + Local SEO" />
+                    <input className={inputCls} value={form.suggestedOffer || ''} onChange={e => set('suggestedOffer', e.target.value)} placeholder={serviceCatalog.suggestedOfferPlaceholder} />
                   </Field>
                 </div>
               </div>
@@ -276,19 +331,28 @@ export default function AddLeadPage() {
               </div>
             </div>
 
-            {/* Package Interest */}
+            {/* Services interested in */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <h2 className="font-semibold text-gray-800">Package Interest</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Field label="Website Package">
-                  <input className={inputCls} value={form.websitePackageInterest || ''} onChange={e => set('websitePackageInterest', e.target.value)} placeholder="Starter Website" />
-                </Field>
-                <Field label="CRM Package">
-                  <input className={inputCls} value={form.crmPackageInterest || ''} onChange={e => set('crmPackageInterest', e.target.value)} placeholder="Custom CRM" />
-                </Field>
-                <Field label="Marketing Package">
-                  <input className={inputCls} value={form.marketingPackageInterest || ''} onChange={e => set('marketingPackageInterest', e.target.value)} placeholder="Local SEO" />
-                </Field>
+              <h2 className="font-semibold text-gray-800">Services Interested In</h2>
+              <div className="grid grid-cols-1 gap-4">
+                <MultiSelectChips
+                  label={serviceCatalog.websiteLabel}
+                  value={form.websitePackageInterest || ''}
+                  options={serviceCatalog.websiteOptions}
+                  onChange={(value) => set('websitePackageInterest', value)}
+                />
+                <MultiSelectChips
+                  label={serviceCatalog.crmLabel}
+                  value={form.crmPackageInterest || ''}
+                  options={serviceCatalog.crmOptions}
+                  onChange={(value) => set('crmPackageInterest', value)}
+                />
+                <MultiSelectChips
+                  label={serviceCatalog.marketingLabel}
+                  value={form.marketingPackageInterest || ''}
+                  options={serviceCatalog.marketingOptions}
+                  onChange={(value) => set('marketingPackageInterest', value)}
+                />
               </div>
             </div>
 

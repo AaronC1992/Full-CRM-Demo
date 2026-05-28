@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import Modal from '@/components/ui/Modal';
 import { showToast } from '@/components/ui/Toast';
 import { Deal, DealStage, ContractStatus, PaymentStatus } from '@/lib/types';
+import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { Plus, Edit3, Trash2, DollarSign } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -22,6 +24,8 @@ const STAGE_COLORS: Record<DealStage, string> = {
 const EMPTY: Partial<Deal> = { leadId: undefined, businessName: '', dealStage: 'Opportunity', serviceSold: '', packageType: '', monthlyValue: undefined, oneTimeSetupValue: undefined, estimatedCloseDate: '', proposalUrl: '', contractStatus: 'None', paymentStatus: 'Unpaid', notes: '' };
 
 export default function DealsPage() {
+  const { industry } = useDemoMode();
+  const serviceCatalog = getIndustryServiceCatalog(industry);
   const [deals, setDeals] = useState<(Deal & { leadName?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStage, setFilterStage] = useState<DealStage | ''>('');
@@ -194,7 +198,7 @@ export default function DealsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
               <label className="text-xs text-gray-500 mb-1 block">Business Name / Deal Title <span className="text-red-500">*</span></label>
-              <input className={inp} value={editDeal.businessName || ''} onChange={e => setEditDeal(p => ({ ...p, businessName: e.target.value }))} placeholder="Joplin Auto Repair — Website + SEO" />
+              <input className={inp} value={editDeal.businessName || ''} onChange={e => setEditDeal(p => ({ ...p, businessName: e.target.value }))} placeholder={`Sample ${serviceCatalog.dealPackagePlaceholder}`} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Stage</label>
@@ -204,7 +208,7 @@ export default function DealsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Service Sold</label>
-              <input className={inp} value={editDeal.serviceSold || ''} onChange={e => setEditDeal(p => ({ ...p, serviceSold: e.target.value }))} placeholder="Website redesign + SEO" />
+              <input className={inp} value={editDeal.serviceSold || ''} onChange={e => setEditDeal(p => ({ ...p, serviceSold: e.target.value }))} placeholder={serviceCatalog.dealServicePlaceholder} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Setup Value ($)</label>
@@ -216,7 +220,7 @@ export default function DealsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Package Type</label>
-              <input className={inp} value={editDeal.packageType || ''} onChange={e => setEditDeal(p => ({ ...p, packageType: e.target.value }))} placeholder="Business Starter Bundle" />
+              <input className={inp} value={editDeal.packageType || ''} onChange={e => setEditDeal(p => ({ ...p, packageType: e.target.value }))} placeholder={serviceCatalog.dealPackagePlaceholder} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Expected Close Date</label>

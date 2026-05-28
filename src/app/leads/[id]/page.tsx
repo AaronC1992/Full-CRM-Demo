@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { StatusBadge, PriorityBadge, TagBadge } from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { showToast } from '@/components/ui/Toast';
@@ -9,8 +10,9 @@ import { Lead, LeadStatus, Priority, Activity, Template, Demo, Task, TaskType, T
 import {
   formatDate, formatDateTime, formatCurrency,
   LEAD_STATUSES, PRIORITIES, INDUSTRIES, LEAD_SOURCES,
-  STATES, WEBSITE_QUALITY_OPTIONS, SERVICE_OPPORTUNITIES, fillTemplate
+  STATES, WEBSITE_QUALITY_OPTIONS, fillTemplate
 } from '@/lib/utils';
+import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 import {
   Phone, Mail, Globe, MapPin, Calendar, DollarSign,
   Edit3, Save, X, CheckCircle, Circle, PhoneCall, Send,
@@ -51,9 +53,60 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function parseMultiValue(value?: string | null) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function toggleMultiValue(currentValue: string | undefined, nextValue: string) {
+  const current = parseMultiValue(currentValue);
+  return current.includes(nextValue)
+    ? current.filter((item) => item !== nextValue).join(', ')
+    : [...current, nextValue].join(', ');
+}
+
+function MultiSelectChips({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value?: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const selected = parseMultiValue(value);
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const active = selected.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onChange(toggleMultiValue(value, option))}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${active ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function LeadDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { industry } = useDemoMode();
+  const serviceCatalog = getIndustryServiceCatalog(industry);
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -490,7 +543,7 @@ export default function LeadDetailPage() {
                   <InfoRow icon={Globe} label="Has Facebook?" value={lead.hasFacebookPage} />
                   <InfoRow icon={Globe} label="Website Quality" value={lead.currentWebsiteQuality} />
                   <InfoRow icon={DollarSign} label="Lead Source" value={lead.leadSource} />
-                  <InfoRow icon={Send} label="Service Opportunity" value={lead.serviceOpportunity} />
+                  <InfoRow icon={Send} label="Services" value={lead.serviceOpportunity} />
                   <InfoRow icon={Tag} label="Suggested Offer" value={lead.suggestedOffer} />
                   {lead.estimatedDealValue != null && (
                     <InfoRow icon={DollarSign} label="Est. Monthly Value" value={formatCurrency(lead.estimatedDealValue)} />
@@ -513,12 +566,13 @@ export default function LeadDetailPage() {
                       {WEBSITE_QUALITY_OPTIONS.map(q => <option key={q}>{q}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Service Opportunity</label>
-                    <select className={inputCls} value={editForm.serviceOpportunity || ''} onChange={e => set('serviceOpportunity', e.target.value)}>
-                      <option value="">Select...</option>
-                      {SERVICE_OPPORTUNITIES.map(s => <option key={s}>{s}</option>)}
-                    </select>
+                  <div className="sm:col-span-2">
+                    <MultiSelectChips
+                      label="Services"
+                      value={editForm.serviceOpportunity || ''}
+                      options={serviceCatalog.serviceOptions}
+                      onChange={(value) => set('serviceOpportunity', value)}
+                    />
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">Suggested Offer</label>
@@ -714,15 +768,39 @@ export default function LeadDetailPage() {
               </div>
             </div>
 
-            {/* Package interest */}
+            {/* Services interested in */}
             {(lead.websitePackageInterest || lead.crmPackageInterest || lead.marketingPackageInterest) && (
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-                <h3 className="font-semibold text-gray-800 text-sm mb-3">Package Interest</h3>
+                <h3 className="font-semibold text-gray-800 text-sm mb-3">Services Interested In</h3>
                 <div className="space-y-1.5 text-sm">
                   {lead.websitePackageInterest && <p className="text-gray-600">🌐 {lead.websitePackageInterest}</p>}
                   {lead.crmPackageInterest && <p className="text-gray-600">⚙️ {lead.crmPackageInterest}</p>}
                   {lead.marketingPackageInterest && <p className="text-gray-600">📣 {lead.marketingPackageInterest}</p>}
                 </div>
+              </div>
+            )}
+
+            {editing && (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-4">
+                <h3 className="font-semibold text-gray-800 text-sm">Services Interested In</h3>
+                <MultiSelectChips
+                  label={serviceCatalog.websiteLabel}
+                  value={editForm.websitePackageInterest || ''}
+                  options={serviceCatalog.websiteOptions}
+                  onChange={(value) => set('websitePackageInterest', value)}
+                />
+                <MultiSelectChips
+                  label={serviceCatalog.crmLabel}
+                  value={editForm.crmPackageInterest || ''}
+                  options={serviceCatalog.crmOptions}
+                  onChange={(value) => set('crmPackageInterest', value)}
+                />
+                <MultiSelectChips
+                  label={serviceCatalog.marketingLabel}
+                  value={editForm.marketingPackageInterest || ''}
+                  options={serviceCatalog.marketingOptions}
+                  onChange={(value) => set('marketingPackageInterest', value)}
+                />
               </div>
             )}
 
@@ -849,7 +927,7 @@ export default function LeadDetailPage() {
           <div className="space-y-3 mb-4">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Service Sold</label>
-              <input className={inputCls} value={newDeal.serviceSold || ''} onChange={e => setNewDeal(p => ({ ...p, serviceSold: e.target.value }))} placeholder="Website redesign + Local SEO" />
+              <input className={inputCls} value={newDeal.serviceSold || ''} onChange={e => setNewDeal(p => ({ ...p, serviceSold: e.target.value }))} placeholder={serviceCatalog.dealServicePlaceholder} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

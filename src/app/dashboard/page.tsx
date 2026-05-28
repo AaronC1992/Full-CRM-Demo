@@ -13,10 +13,13 @@ import { useDemoMode } from '@/components/demo/DemoModeProvider';
 
 function StatCard({ label, value, icon: Icon, color, sub }: {
   label: string; value: number | string; icon: React.ElementType;
-  color: string; sub?: string;
+  color: string; sub?: string; href?: string;
 }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-start gap-4">
+  label: string; value: number | string; icon: React.ElementType;
+  color: string; sub?: string; href?: string;
+}) {
+  const content = (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-start gap-4 transition-colors hover:bg-gray-50">
       <div className={`p-2.5 rounded-lg ${color}`}>
         <Icon size={20} className="text-white" />
       </div>
@@ -27,6 +30,8 @@ function StatCard({ label, value, icon: Icon, color, sub }: {
       </div>
     </div>
   );
+
+  return href ? <Link href={href}>{content}</Link> : content;
 }
 
 export default function DashboardPage() {
@@ -117,13 +122,13 @@ export default function DashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          <StatCard label="Total Leads" value={stats.totalLeads} icon={Users} color="bg-blue-500" />
+          <StatCard label="Total Leads" value={stats.totalLeads} icon={Users} color="bg-blue-500" href="/leads" />
           <StatCard label="New Leads" value={stats.newLeads} icon={TrendingUp} color="bg-indigo-500" />
           <StatCard label="Contacted" value={stats.contactedLeads} icon={PhoneCall} color="bg-cyan-500" />
           <StatCard label="Interested" value={stats.interestedLeads} icon={Star} color="bg-teal-500" />
           <StatCard label="Demo Sent" value={stats.demoSentLeads} icon={Send} color="bg-violet-500" />
           <StatCard label="Follow Up Due" value={stats.followUpDueToday} icon={Clock} color="bg-amber-500" />
-          <StatCard label="Won Deals" value={stats.wonDeals} icon={CheckCircle2} color="bg-green-500" />
+          <StatCard label="Won Deals" value={stats.wonDeals} icon={CheckCircle2} color="bg-green-500" href="/customers" />
           <StatCard label="Lost Deals" value={stats.lostDeals} icon={XCircle} color="bg-red-400" />
         </div>
 
@@ -142,12 +147,17 @@ export default function DashboardPage() {
               { label: 'Tasks', value: stats.upcomingFollowUps.length + stats.followUpDueToday },
               { label: 'Reviews', value: stats.demoSentLeads + 3 },
               { label: 'Recent activity', value: stats.recentActivity.length },
-            ].map((item) => (
-              <div key={item.label} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            ].map((item) => {
+              const href = item.label === 'Leads' ? '/leads' : item.label === profile.customerLabel ? '/customers' : undefined;
+              const content = (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 transition-colors hover:bg-gray-100">
                 <p className="text-[11px] uppercase tracking-wide text-gray-500">{item.label}</p>
                 <p className="text-base font-semibold text-gray-800 mt-1">{item.value}</p>
-              </div>
-            ))}
+                </div>
+              );
+
+              return href ? <Link key={item.label} href={href}>{content}</Link> : <div key={item.label}>{content}</div>;
+            })}
           </div>
         </div>
 

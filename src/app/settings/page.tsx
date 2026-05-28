@@ -7,7 +7,7 @@ import { showToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
-import { INDUSTRY_OPTIONS } from '@/lib/demo-mode';
+import { getIndustryServiceCatalog, INDUSTRY_OPTIONS } from '@/lib/demo-mode';
 import type { AppUser } from '@/lib/types';
 
 const SETTINGS_FIELDS = [
@@ -63,6 +63,7 @@ export default function SettingsPage() {
     setModuleEnabled,
     moduleDefinitions,
   } = useDemoMode();
+  const serviceCatalog = getIndustryServiceCatalog(industry);
 
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -334,7 +335,7 @@ export default function SettingsPage() {
                   type={type}
                   value={settings[key] || ''}
                   onChange={(e) => set(key, e.target.value)}
-                  placeholder={placeholder}
+                  placeholder={key === 'defaultServices' ? serviceCatalog.defaultServicesPlaceholder : placeholder}
                 />
               </div>
             ))}

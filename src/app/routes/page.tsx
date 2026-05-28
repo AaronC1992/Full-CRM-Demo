@@ -3,10 +3,12 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { showToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 import { AppUser, Lead, RoutePlan, RouteStop } from '@/lib/types';
-import { LEAD_STATUSES, PRIORITIES, INDUSTRIES, SERVICE_OPPORTUNITIES } from '@/lib/utils';
+import { LEAD_STATUSES, PRIORITIES, INDUSTRIES } from '@/lib/utils';
+import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 import {
   MapPin, Navigation, Sparkles, Route, Clock, Filter, Search,
   CheckSquare, Square, RefreshCw, Phone, Globe, AlertTriangle,
@@ -383,6 +385,8 @@ function StopCard({ stop, index, routeId, onRemove, onSkip, onMarkVisited, onMov
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 function RouteBuilderContent() {
+  const { industry } = useDemoMode();
+  const serviceCatalog = getIndustryServiceCatalog(industry);
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<'build' | 'route' | 'history'>('build');
 
@@ -866,7 +870,7 @@ function RouteBuilderContent() {
                       <label className={label}>Service Opportunity</label>
                       <select className={inp} value={filters.serviceOpportunity} onChange={e => setFilters(p => ({ ...p, serviceOpportunity: e.target.value }))}>
                         <option value="">Any</option>
-                        {(SERVICE_OPPORTUNITIES || []).map((s: string) => <option key={s}>{s}</option>)}
+                        {serviceCatalog.serviceOptions.map((s: string) => <option key={s}>{s}</option>)}
                       </select>
                     </div>
                   </div>

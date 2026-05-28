@@ -3,67 +3,64 @@ import { useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
 import { ImportResult } from '@/lib/types';
+import { useDemoMode } from '@/components/demo/DemoModeProvider';
+import { getIndustryServiceCatalog } from '@/lib/demo-mode';
 import { Download, Upload, Copy, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
-const JSON_SAMPLE = JSON.stringify([{
-  businessName: "Joplin Auto Repair",
-  contactName: "Mike Johnson",
-  phone: "417-555-0100",
-  email: "mike@joplinauto.com",
-  website: "https://joplinauto.com",
-  facebookPage: "https://facebook.com/joplinauto",
-  address: "123 Main St",
-  city: "Joplin",
-  state: "MO",
-  industry: "Automotive",
-  currentWebsiteQuality: "Outdated - basic or ugly site",
-  hasWebsite: "Yes",
-  hasFacebookPage: "Yes",
-  googleBusinessProfile: "https://maps.google.com/?cid=...",
-  serviceOpportunity: "Website redesign + Local SEO",
-  suggestedOffer: "Business Website Package + SEO",
-  estimatedDealValue: 2497,
-  leadSource: "ChatGPT research",
-  leadStatus: "New",
-  priority: "Warm",
-  notes: "Site looks like it was built in 2010. No mobile optimization.",
-  painPoints: "Outdated website, low Google ranking",
-  personalizedPitch: "Hey Mike, I noticed your website could use some modernizing — I build mobile-friendly sites for local Joplin businesses starting at $997.",
-  demoWebsiteUrl: "",
-  crmDemoUrl: "",
-  tags: ["website", "seo", "joplin"]
-}], null, 2);
-
-const CHATGPT_PROMPT_TEMPLATE = `You are a marketing research assistant for Full CRM Demo, a configurable CRM demo platform for local businesses.
-
-Use generic demo contact details and avoid real personal information.
-
-Services offered:
-- Website design/redesign ($997–$2997+)
-- Custom CRMs
-- Local SEO
-- Social media management
-- Facebook & Google ads
-- Lead generation
-- Service bundles
-
-I need you to research local businesses in [CITY, MO] in the [INDUSTRY] industry and find [NUMBER] leads that would benefit from digital marketing services.
-
-For each lead, return a JSON array in EXACTLY this format (no extra text, just the JSON array):
-
-${JSON_SAMPLE}
-
-Criteria for good leads:
-- Local business in the service area
-- Has an outdated website, no website, or poor online presence
-- Would benefit from website, SEO, or marketing services
-- Estimated deal value: $997–$5000 depending on scope
-
-IMPORTANT: Return ONLY the JSON array, no other text. I will paste this directly into my CRM.`;
-
 export default function ImportExportPage() {
+  const { industry, industryOption } = useDemoMode();
+  const serviceCatalog = getIndustryServiceCatalog(industry);
   const [jsonText, setJsonText] = useState('');
+    const jsonSample = JSON.stringify([{
+      businessName: `Sample ${industryOption.shortLabel} Prospect`,
+      contactName: 'Jordan Smith',
+      phone: '417-555-0100',
+      email: 'jordan@example.com',
+      website: 'https://samplebusiness.com',
+      facebookPage: 'https://facebook.com/samplebusiness',
+      address: '123 Main St',
+      city: 'Joplin',
+      state: 'MO',
+      industry: industryOption.shortLabel,
+      currentWebsiteQuality: 'Outdated basic site',
+      hasWebsite: 'Yes',
+      hasFacebookPage: 'Yes',
+      googleBusinessProfile: 'https://maps.google.com/?cid=...',
+      serviceOpportunity: serviceCatalog.serviceOptions.slice(0, 2).join(', '),
+      suggestedOffer: serviceCatalog.suggestedOfferPlaceholder,
+      estimatedDealValue: 2497,
+      leadSource: 'ChatGPT research',
+      leadStatus: 'New',
+      priority: 'Warm',
+      notes: 'Online presence needs improvement and follow up is inconsistent.',
+      painPoints: 'Old workflow, weak follow up, unclear service request path',
+      personalizedPitch: `I noticed your ${industryOption.shortLabel.toLowerCase()} business could benefit from ${serviceCatalog.serviceOptions[0].toLowerCase()} and ${serviceCatalog.serviceOptions[1].toLowerCase()}.`,
+      demoWebsiteUrl: '',
+      crmDemoUrl: '',
+      tags: ['demo', industry.replace(/-/g, ' '), 'joplin']
+    }], null, 2);
+
+    const chatGptPromptTemplate = `You are a research assistant for Full CRM Demo, a configurable CRM demo platform for local businesses.
+
+  Use generic demo contact details and avoid real personal information.
+
+  Services offered:
+  ${serviceCatalog.serviceOptions.map((service) => `- ${service}`).join('\n')}
+
+  I need you to research local businesses in [CITY, MO] in the [INDUSTRY] industry and find [NUMBER] leads that would benefit from these services.
+
+  For each lead, return a JSON array in EXACTLY this format, no extra text, just the JSON array:
+
+  ${jsonSample}
+
+  Criteria for good leads:
+  - Local business in the service area
+  - Would benefit from the services listed above
+  - Estimated deal value: $997 to $5000 depending on scope
+
+  IMPORTANT: Return ONLY the JSON array, no other text. I will paste this directly into my CRM.`;
+
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,11 +112,11 @@ export default function ImportExportPage() {
   };
 
   const copySample = () => {
-    navigator.clipboard.writeText(JSON_SAMPLE).then(() => showToast('Sample JSON format copied!'));
+    navigator.clipboard.writeText(jsonSample).then(() => showToast('Sample JSON format copied!'));
   };
 
   const copyChatGptPrompt = () => {
-    navigator.clipboard.writeText(CHATGPT_PROMPT_TEMPLATE).then(() => showToast('ChatGPT prompt copied!'));
+    navigator.clipboard.writeText(chatGptPromptTemplate).then(() => showToast('ChatGPT prompt copied!'));
   };
 
   return (
@@ -151,7 +148,7 @@ export default function ImportExportPage() {
             <Copy size={16} /> Copy ChatGPT Prompt
           </button>
           <div className="mt-3 bg-white/60 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-800 font-mono whitespace-pre-wrap max-h-36 overflow-y-auto">
-            {CHATGPT_PROMPT_TEMPLATE.slice(0, 300)}...
+            {chatGptPromptTemplate.slice(0, 300)}...
           </div>
         </div>
 
@@ -177,7 +174,7 @@ export default function ImportExportPage() {
             rows={10}
             value={jsonText}
             onChange={e => setJsonText(e.target.value)}
-            placeholder={`Paste JSON array here...\n\n${JSON_SAMPLE.slice(0, 200)}...`}
+            placeholder={`Paste JSON array here...\n\n${jsonSample.slice(0, 200)}...`}
           />
           <div className="flex items-center gap-3 mt-3">
             <button
@@ -232,7 +229,7 @@ export default function ImportExportPage() {
             </button>
           </div>
           <pre className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
-            {JSON_SAMPLE}
+            {jsonSample}
           </pre>
         </div>
 

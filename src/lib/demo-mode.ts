@@ -27,6 +27,22 @@ export interface IndustryProfile {
   dashboardCards: Array<{ label: string; value: number; trend: string }>;
 }
 
+export interface DemoServiceCatalog {
+  serviceOptions: string[];
+  websiteLabel: string;
+  websiteOptions: string[];
+  crmLabel: string;
+  crmOptions: string[];
+  marketingLabel: string;
+  marketingOptions: string[];
+  suggestedOfferPlaceholder: string;
+  defaultServicesPlaceholder: string;
+  packageNamePlaceholder: string;
+  packageFeaturePlaceholder: string;
+  dealServicePlaceholder: string;
+  dealPackagePlaceholder: string;
+}
+
 export const INDUSTRY_OPTIONS: IndustryOption[] = [
   { value: 'lawn-care', label: 'Lawn care and landscaping', shortLabel: 'Lawn care' },
   { value: 'contractor', label: 'Contractor', shortLabel: 'Contractor' },
@@ -271,6 +287,123 @@ export const INDUSTRY_PROFILES: Record<DemoIndustry, IndustryProfile> = {
 
 export function getIndustryOption(industry: DemoIndustry): IndustryOption {
   return INDUSTRY_OPTIONS.find((option) => option.value === industry) ?? INDUSTRY_OPTIONS[0];
+}
+
+export function getIndustryServiceCatalog(industry: DemoIndustry): DemoServiceCatalog {
+  switch (industry) {
+    case 'lawn-care':
+      return {
+        serviceOptions: ['Estimate request page', 'Route scheduling', 'Recurring visit reminders', 'Seasonal cleanup campaign', 'Review requests', 'Crew dispatch board'],
+        websiteLabel: 'Lead Capture Services',
+        websiteOptions: ['Estimate request page', 'Service area pages', 'Seasonal offer page', 'Instant quote form', 'Irrigation request page'],
+        crmLabel: 'Operations Services',
+        crmOptions: ['Route scheduling', 'Crew dispatch board', 'Recurring visit plans', 'Job checklists', 'Customer portal'],
+        marketingLabel: 'Retention Services',
+        marketingOptions: ['Review requests', 'Renewal reminders', 'Reactivation campaign', 'Referral program', 'Missed call text back'],
+        suggestedOfferPlaceholder: 'Estimate request page + route scheduling',
+        defaultServicesPlaceholder: 'Estimate request pages, route scheduling, recurring visit reminders, review requests',
+        packageNamePlaceholder: 'Recurring Lawn Care Growth Plan',
+        packageFeaturePlaceholder: 'Seasonal cleanup reminder automation',
+        dealServicePlaceholder: 'Route scheduling + review requests',
+        dealPackagePlaceholder: 'Lawn Care Retention Bundle',
+      };
+    case 'contractor':
+      return {
+        serviceOptions: ['Project estimate page', 'Change order workflow', 'Job scheduling', 'Missed call text back', 'Review requests', 'Referral follow up'],
+        websiteLabel: 'Sales Services',
+        websiteOptions: ['Project estimate page', 'Financing page', 'Service area pages', 'Gallery landing page', 'Quote request funnel'],
+        crmLabel: 'Operations Services',
+        crmOptions: ['Job scheduling', 'Change order workflow', 'Crew assignments', 'Project pipeline', 'Customer portal'],
+        marketingLabel: 'Growth Services',
+        marketingOptions: ['Review requests', 'Referral follow up', 'Reactivation campaign', 'Missed call text back', 'Lead response alerts'],
+        suggestedOfferPlaceholder: 'Project estimate page + job scheduling',
+        defaultServicesPlaceholder: 'Project estimate pages, job scheduling, change order workflows, review requests',
+        packageNamePlaceholder: 'Contractor Sales and Scheduling Plan',
+        packageFeaturePlaceholder: 'Change order approval workflow',
+        dealServicePlaceholder: 'Project estimate page + review requests',
+        dealPackagePlaceholder: 'Contractor Growth Bundle',
+      };
+    case 'salon-spa':
+      return {
+        serviceOptions: ['Booking page', 'Membership upsell flow', 'Appointment reminders', 'Review requests', 'Rebooking campaign', 'Gift card promotion'],
+        websiteLabel: 'Booking Services',
+        websiteOptions: ['Booking page', 'Service menu page', 'Stylist landing page', 'Gift card page', 'New guest offer page'],
+        crmLabel: 'Client Retention Services',
+        crmOptions: ['Appointment reminders', 'Rebooking campaign', 'Client notes', 'Membership tracking', 'Consultation workflow'],
+        marketingLabel: 'Growth Services',
+        marketingOptions: ['Review requests', 'Referral program', 'Birthday campaign', 'Gift card promotion', 'Win back campaign'],
+        suggestedOfferPlaceholder: 'Booking page + rebooking campaign',
+        defaultServicesPlaceholder: 'Booking pages, appointment reminders, review requests, rebooking campaigns',
+        packageNamePlaceholder: 'Salon Retention Growth Plan',
+        packageFeaturePlaceholder: 'Rebooking reminder sequence',
+        dealServicePlaceholder: 'Booking page + review requests',
+        dealPackagePlaceholder: 'Salon Guest Growth Bundle',
+      };
+    case 'auto-repair':
+      return {
+        serviceOptions: ['Repair estimate page', 'Appointment reminders', 'Maintenance reminders', 'Review requests', 'Parts status updates', 'Missed call text back'],
+        websiteLabel: 'Estimate Services',
+        websiteOptions: ['Repair estimate page', 'Service menu page', 'Financing page', 'Emergency repair page', 'Inspection request page'],
+        crmLabel: 'Shop Workflow Services',
+        crmOptions: ['Appointment reminders', 'Maintenance reminders', 'Parts status updates', 'Inspection workflow', 'Customer portal'],
+        marketingLabel: 'Retention Services',
+        marketingOptions: ['Review requests', 'Service reminder campaigns', 'Win back campaign', 'Referral program', 'Missed call text back'],
+        suggestedOfferPlaceholder: 'Repair estimate page + maintenance reminders',
+        defaultServicesPlaceholder: 'Repair estimate pages, maintenance reminders, review requests, appointment reminders',
+        packageNamePlaceholder: 'Auto Shop Retention Plan',
+        packageFeaturePlaceholder: 'Mileage based service reminders',
+        dealServicePlaceholder: 'Maintenance reminders + review requests',
+        dealPackagePlaceholder: 'Auto Shop Follow Up Bundle',
+      };
+    case 'cleaning-company':
+      return {
+        serviceOptions: ['Walkthrough request page', 'Recurring visit scheduling', 'Review requests', 'Crew checklists', 'Reactivation campaign', 'Payment reminders'],
+        websiteLabel: 'Lead Capture Services',
+        websiteOptions: ['Walkthrough request page', 'Quote request page', 'Recurring service page', 'Move out cleaning page', 'Commercial cleaning page'],
+        crmLabel: 'Operations Services',
+        crmOptions: ['Recurring visit scheduling', 'Crew checklists', 'Quality follow up', 'Customer portal', 'Payment reminders'],
+        marketingLabel: 'Growth Services',
+        marketingOptions: ['Review requests', 'Reactivation campaign', 'Referral program', 'Missed call text back', 'Seasonal offer campaign'],
+        suggestedOfferPlaceholder: 'Walkthrough request page + recurring visit scheduling',
+        defaultServicesPlaceholder: 'Walkthrough pages, recurring visit scheduling, review requests, quality follow ups',
+        packageNamePlaceholder: 'Cleaning Company Retention Plan',
+        packageFeaturePlaceholder: 'Recurring service quality follow up',
+        dealServicePlaceholder: 'Recurring visit scheduling + review requests',
+        dealPackagePlaceholder: 'Cleaning Growth Bundle',
+      };
+    case 'restaurant-catering':
+      return {
+        serviceOptions: ['Event inquiry page', 'Catering order workflow', 'Reservation reminders', 'Review requests', 'Repeat guest campaign', 'Loyalty offers'],
+        websiteLabel: 'Booking Services',
+        websiteOptions: ['Event inquiry page', 'Menu landing page', 'Reservation page', 'Private dining page', 'Catering order page'],
+        crmLabel: 'Guest Services',
+        crmOptions: ['Catering order workflow', 'Reservation reminders', 'Guest notes', 'Event follow up', 'Customer portal'],
+        marketingLabel: 'Repeat Visit Services',
+        marketingOptions: ['Review requests', 'Repeat guest campaign', 'Loyalty offers', 'Referral asks', 'Birthday promotion'],
+        suggestedOfferPlaceholder: 'Event inquiry page + repeat guest campaign',
+        defaultServicesPlaceholder: 'Event inquiry pages, catering workflows, reservation reminders, repeat guest campaigns',
+        packageNamePlaceholder: 'Restaurant Repeat Visit Plan',
+        packageFeaturePlaceholder: 'Post event review request sequence',
+        dealServicePlaceholder: 'Catering order workflow + loyalty offers',
+        dealPackagePlaceholder: 'Catering Growth Bundle',
+      };
+    default:
+      return {
+        serviceOptions: ['Website redesign', 'New website', 'Local SEO', 'Social media management', 'Google Ads', 'Custom CRM'],
+        websiteLabel: 'Website Services',
+        websiteOptions: ['Starter Website', 'Website Redesign', 'Landing Page Pack', 'Booking Funnel', 'Premium Website'],
+        crmLabel: 'CRM Services',
+        crmOptions: ['Basic CRM', 'Custom CRM', 'Automations', 'Sales Pipeline', 'Customer Portal'],
+        marketingLabel: 'Marketing Services',
+        marketingOptions: ['Local SEO', 'Google Ads', 'Facebook Ads', 'Email Marketing', 'Review Automation'],
+        suggestedOfferPlaceholder: 'Starter Website + Local SEO',
+        defaultServicesPlaceholder: 'Website design, Local SEO, social media management, custom CRM',
+        packageNamePlaceholder: 'Business Growth Bundle',
+        packageFeaturePlaceholder: 'Lead follow up automation',
+        dealServicePlaceholder: 'Website redesign + Local SEO',
+        dealPackagePlaceholder: 'Business Starter Bundle',
+      };
+  }
 }
 
 export function buildPipelineStages(industry: DemoIndustry): string[] {

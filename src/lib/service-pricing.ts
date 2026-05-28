@@ -78,7 +78,8 @@ export function buildSeedServices(options: {
   suggestedOffer?: string;
 }): ServiceLineItem[] {
   const names = [options.serviceOpportunity, options.suggestedOffer]
-    .map((value) => String(value || '').trim())
+    .flatMap((value) => String(value || '').split(','))
+    .map((value) => value.trim())
     .filter((value, index, list) => value.length > 0 && list.indexOf(value) === index)
     .slice(0, 3);
 
