@@ -2,17 +2,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { showToast } from '@/components/ui/Toast';
+import ServicePricingModal from '@/components/ui/ServicePricingModal';
 import { Lead } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import {
+  buildSeedServices,
+  getServiceItems,
+  getServiceSummary,
+  loadServicePricingMap,
+  saveServicePricingMap,
+  ServiceLineItem,
+  ServicePricingMap,
+  setServiceItems,
+} from '@/lib/service-pricing';
 import Link from 'next/link';
 import ColumnEditor, { ColDef, ColState, mergeColState } from '@/components/ui/ColumnEditor';
 import {
   UserCheck, Search, Phone, Mail, Globe, DollarSign,
-  ExternalLink, Calendar, Package, TrendingUp,
-  ChevronUp, ChevronDown, Columns2, UserX
+  ExternalLink, Calendar, TrendingUp,
+  ChevronUp, ChevronDown, Columns2, UserX, Wrench, LayoutGrid, List
 } from 'lucide-react';
 
 const CUSTOMERS_COLS_KEY = 'fullcrmdemo_customers_cols';
+const CUSTOMERS_SIMPLE_VIEW_KEY = 'fullcrmdemo_customers_simple_view';
 
 const ALL_CUSTOMERS_COLS: ColDef[] = [
   { key: 'contact', label: 'Contact' },
@@ -44,13 +56,13 @@ function getInitialCustomersCols(): ColState[] {
   } catch { return DEFAULT_CUSTOMERS_COLS; }
 }
 
-function ServiceTag({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-2 py-0.5 text-xs font-medium">
-      <Package size={10} />
-      {label}
-    </span>
-  );
+function getInitialSimpleView(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(CUSTOMERS_SIMPLE_VIEW_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 export default function CustomersPage() {
@@ -62,6 +74,9 @@ export default function CustomersPage() {
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
   const [colState, setColState] = useState<ColState[]>(getInitialCustomersCols);
   const [showColEditor, setShowColEditor] = useState(false);
+  const [simpleView, setSimpleView] = useState(getInitialSimpleView);
+  const [serviceMap, setServiceMap] = useState<ServicePricingMap>({});
+  const [editingCustomer, setEditingCustomer] = useState<Lead | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -75,6 +90,28 @@ export default function CustomersPage() {
   useEffect(() => {
     try { localStorage.setItem(CUSTOMERS_COLS_KEY, JSON.stringify(colState)); } catch { /* ignore */ }
   }, [colState]);
+
+  useEffect(() => {
+    setServiceMap(loadServicePricingMap());
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CUSTOMERS_SIMPLE_VIEW_KEY, simpleView ? '1' : '0');
+    } catch {
+      // Ignore preference storage issues.
+    }
+  }, [simpleView]);
+
+  const updateCustomerServices = (leadId: number, items: ServiceLineItem[]) => {
+    setServiceMap((current) => {
+      const next = setServiceItems(current, leadId, items);
+      saveServicePricingMap(next);
+      return next;
+    });
+  };
+
+  const getCustomerServices = (lead: Lead): ServiceLineItem[] => getServiceItems(serviceMap, lead.id);
 
   const industries = [...new Set(customers.map(c => c.industry).filter(Boolean))].sort();
 
@@ -118,15 +155,6 @@ export default function CustomersPage() {
   const totalValue = customers.reduce((sum, c) => sum + (c.estimatedDealValue || 0), 0);
   const thisMonth = new Date().toISOString().substring(0, 7);
   const wonThisMonth = customers.filter(c => c.updatedDate?.startsWith(thisMonth)).length;
-
-  function getServices(c: Lead): string[] {
-    const s: string[] = [];
-    if (c.marketingPackageInterest) s.push(c.marketingPackageInterest);
-    if (c.websitePackageInterest) s.push(c.websitePackageInterest);
-    if (c.crmPackageInterest) s.push(c.crmPackageInterest);
-    if (!s.length && c.serviceOpportunity) s.push(c.serviceOpportunity);
-    return s;
-  }
 
   async function copyPhone(phone: string) {
     try { await navigator.clipboard.writeText(phone); showToast('Phone copied!', 'success'); }
@@ -196,6 +224,13 @@ export default function CustomersPage() {
             <Columns2 size={15} />
             Columns
           </button>
+          <button
+            onClick={() => setSimpleView((current) => !current)}
+            className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors"
+          >
+            {simpleView ? <List size={15} /> : <LayoutGrid size={15} />}
+            {simpleView ? 'Table view' : 'Simple view'}
+          </button>
         </div>
 
         {showColEditor && (
@@ -213,7 +248,52 @@ export default function CustomersPage() {
           </div>
         )}
 
-        {!loading && (
+        {!loading && simpleView && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {sorted.length === 0 && (
+              <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm py-10 text-center text-gray-500 text-sm">
+                {customers.length === 0 ? 'No customers yet. Mark a lead as Won to see customers here.' : 'No customers match your search.'}
+              </div>
+            )}
+            {sorted.map((customer) => {
+              const services = getCustomerServices(customer);
+              const summary = getServiceSummary(services);
+              return (
+                <div key={customer.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Link href={`/leads/${customer.id}`} className="font-semibold text-gray-800 hover:text-blue-600">
+                        {customer.businessName}
+                      </Link>
+                      <p className="text-xs text-gray-500 mt-1">{customer.contactName || 'No contact'}{customer.phone ? ` • ${customer.phone}` : ''}</p>
+                    </div>
+                    <span className="rounded-full border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700">Won</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+                    <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">Value {formatCurrency(customer.estimatedDealValue || 0)}</span>
+                    <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1">Services {summary.count} {summary.count > 0 ? `• ${formatCurrency(summary.total)}` : ''}</span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingCustomer(customer)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <Wrench size={12} /> Services
+                    </button>
+                    <Link
+                      href={`/leads/${customer.id}`}
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                    >
+                      Open customer <ExternalLink size={11} />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!loading && !simpleView && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -254,7 +334,6 @@ export default function CustomersPage() {
                           </tr>
                         )}
                         {sorted.map(c => {
-                          const services = getServices(c);
                           return (
                             <tr key={c.id} className="hover:bg-gray-50 transition-colors group">
                               <td className="px-4 py-3">
@@ -275,11 +354,11 @@ export default function CustomersPage() {
                                 </div>
                               </td>
                               {visibleCols.map(col => {
-                                let cell: React.ReactNode = 'â€”';
+                                let cell: React.ReactNode = '—';
                                 if (col.key === 'contact') {
                                   cell = (
                                     <>
-                                      <p className="text-gray-700 text-xs">{c.contactName || 'â€”'}</p>
+                                      <p className="text-gray-700 text-xs">{c.contactName || '—'}</p>
                                       <div className="flex flex-wrap gap-2 mt-0.5">
                                         {c.phone && (
                                           <button onClick={() => copyPhone(c.phone)} className="text-xs text-gray-400 hover:text-blue-500 flex items-center gap-0.5">
@@ -295,26 +374,37 @@ export default function CustomersPage() {
                                     </>
                                   );
                                 } else if (col.key === 'address') {
-                                  cell = <span className="text-gray-600 text-xs">{c.address || 'â€”'}</span>;
+                                  cell = <span className="text-gray-600 text-xs">{c.address || '—'}</span>;
                                 } else if (col.key === 'city') {
-                                  cell = <span className="text-gray-600 text-xs">{c.city || 'â€”'}</span>;
+                                  cell = <span className="text-gray-600 text-xs">{c.city || '—'}</span>;
                                 } else if (col.key === 'state') {
-                                  cell = <span className="text-gray-600 text-xs">{c.state || 'â€”'}</span>;
+                                  cell = <span className="text-gray-600 text-xs">{c.state || '—'}</span>;
                                 } else if (col.key === 'industry') {
-                                  cell = <span className="text-gray-600 text-xs">{c.industry || 'â€”'}</span>;
+                                  cell = <span className="text-gray-600 text-xs">{c.industry || '—'}</span>;
                                 } else if (col.key === 'services') {
-                                  cell = services.length > 0
-                                    ? <div className="flex flex-wrap gap-1">{services.map(s => <ServiceTag key={s} label={s} />)}</div>
-                                    : <span className="text-gray-400 text-xs">â€”</span>;
+                                  const services = getCustomerServices(c);
+                                  const summary = getServiceSummary(services);
+                                  cell = (
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-gray-600">{summary.count} service{summary.count === 1 ? '' : 's'}</p>
+                                      <p className="text-xs font-medium text-gray-800">{summary.count > 0 ? formatCurrency(summary.total) : '—'}</p>
+                                      <button
+                                        onClick={() => setEditingCustomer(c)}
+                                        className="text-xs text-blue-600 hover:underline"
+                                      >
+                                        Manage services
+                                      </button>
+                                    </div>
+                                  );
                                 } else if (col.key === 'value') {
-                                  cell = <span className="text-gray-700 text-xs font-medium">{c.estimatedDealValue ? formatCurrency(c.estimatedDealValue) : 'â€”'}</span>;
+                                  cell = <span className="text-gray-700 text-xs font-medium">{c.estimatedDealValue ? formatCurrency(c.estimatedDealValue) : '—'}</span>;
                                 } else if (col.key === 'wonDate') {
                                   cell = c.updatedDate ? (
                                     <span className="flex items-center gap-1 text-xs text-gray-500">
                                       <Calendar size={11} />
                                       {formatDate(c.updatedDate.slice(0, 10))}
                                     </span>
-                                  ) : 'â€”';
+                                  ) : '—';
                                 }
                                 return <td key={col.key} className="px-4 py-3">{cell}</td>;
                               })}
@@ -337,6 +427,24 @@ export default function CustomersPage() {
             </div>
           </div>
         )}
+
+        <ServicePricingModal
+          open={Boolean(editingCustomer)}
+          onClose={() => setEditingCustomer(null)}
+          title={editingCustomer ? `Service pricing for ${editingCustomer.businessName}` : 'Service pricing'}
+          initialItems={editingCustomer ? (() => {
+            const saved = getCustomerServices(editingCustomer);
+            if (saved.length > 0) return saved;
+            return buildSeedServices({
+              serviceOpportunity: editingCustomer.serviceOpportunity,
+              suggestedOffer: editingCustomer.suggestedOffer,
+            });
+          })() : []}
+          onSave={(items) => {
+            if (!editingCustomer) return;
+            updateCustomerServices(editingCustomer.id, items);
+          }}
+        />
 
       </div>
     </AppLayout>

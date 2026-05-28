@@ -5,6 +5,17 @@ import { StatusBadge, PriorityBadge } from '@/components/ui/Badge';
 import { AppUser, Lead } from '@/lib/types';
 import { formatDate, formatCurrency, LEAD_STATUSES, PRIORITIES, INDUSTRIES } from '@/lib/utils';
 import { showToast } from '@/components/ui/Toast';
+import ServicePricingModal from '@/components/ui/ServicePricingModal';
+import {
+  buildSeedServices,
+  getServiceItems,
+  getServiceSummary,
+  loadServicePricingMap,
+  saveServicePricingMap,
+  ServiceLineItem,
+  ServicePricingMap,
+  setServiceItems,
+} from '@/lib/service-pricing';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -12,11 +23,12 @@ import { Suspense } from 'react';
 import ColumnEditor, { ColDef, ColState, mergeColState } from '@/components/ui/ColumnEditor';
 import {
   Search, Plus, ExternalLink, ChevronUp, ChevronDown,
-  Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square, UserCheck, Columns2
+  Phone, Globe, SlidersHorizontal, X, UserX, Navigation, CheckSquare, Square, UserCheck, Columns2, Wrench, List, LayoutGrid
 } from 'lucide-react';
 
 const LEADS_CACHE_KEY = 'fullcrmdemo_leads_cache';
 const LEADS_COLS_KEY = 'fullcrmdemo_leads_cols';
+const LEADS_SIMPLE_VIEW_KEY = 'fullcrmdemo_leads_simple_view';
 
 const ALL_LEADS_COLS: ColDef[] = [
   { key: 'contact', label: 'Contact' },
@@ -25,6 +37,7 @@ const ALL_LEADS_COLS: ColDef[] = [
   { key: 'city', label: 'City', sortKey: 'city' },
   { key: 'state', label: 'State', sortKey: 'state' },
   { key: 'industry', label: 'Industry' },
+  { key: 'services', label: 'Services' },
   { key: 'status', label: 'Status', sortKey: 'leadStatus' },
   { key: 'priority', label: 'Priority', sortKey: 'priority' },
   { key: 'value', label: 'Value', sortKey: 'estimatedDealValue' },
@@ -38,6 +51,7 @@ const DEFAULT_LEADS_COLS: ColState[] = [
   { key: 'city', visible: true },
   { key: 'state', visible: false },
   { key: 'industry', visible: true },
+  { key: 'services', visible: true },
   { key: 'status', visible: true },
   { key: 'priority', visible: true },
   { key: 'value', visible: true },
@@ -60,6 +74,15 @@ function getInitialLeadsCols(): ColState[] {
   } catch { return DEFAULT_LEADS_COLS; }
 }
 
+function getInitialSimpleView(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(LEADS_SIMPLE_VIEW_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 function LeadsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -70,6 +93,9 @@ function LeadsContent() {
   const [search, setSearch] = useState('');
   const [colState, setColState] = useState<ColState[]>(getInitialLeadsCols);
   const [showColEditor, setShowColEditor] = useState(false);
+  const [simpleView, setSimpleView] = useState(getInitialSimpleView);
+  const [serviceMap, setServiceMap] = useState<ServicePricingMap>({});
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const leadsRef = useRef<Lead[]>([]);
   leadsRef.current = leads;
   const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || '');
@@ -144,6 +170,28 @@ function LeadsContent() {
       .then((data) => setUsers(Array.isArray(data) ? data : []))
       .catch(() => setUsers([]));
   }, []);
+
+  useEffect(() => {
+    setServiceMap(loadServicePricingMap());
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LEADS_SIMPLE_VIEW_KEY, simpleView ? '1' : '0');
+    } catch {
+      // Ignore preference storage issues.
+    }
+  }, [simpleView]);
+
+  const updateLeadServices = (leadId: number, items: ServiceLineItem[]) => {
+    setServiceMap((current) => {
+      const next = setServiceItems(current, leadId, items);
+      saveServicePricingMap(next);
+      return next;
+    });
+  };
+
+  const getLeadServices = (lead: Lead): ServiceLineItem[] => getServiceItems(serviceMap, lead.id);
 
   const assignLead = async (leadId: number, assignedUserId: number | null) => {
     try {
@@ -223,6 +271,13 @@ function LeadsContent() {
             >
               <Columns2 size={16} />
               Columns
+            </button>
+            <button
+              onClick={() => setSimpleView((current) => !current)}
+              className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors"
+            >
+              {simpleView ? <List size={16} /> : <LayoutGrid size={16} />}
+              {simpleView ? 'Table view' : 'Simple view'}
             </button>
             <Link
               href="/leads/add"
@@ -329,7 +384,55 @@ function LeadsContent() {
           </div>
         )}
 
-        {/* Table */}
+        {simpleView ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {leads.length === 0 && (
+              <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm py-10 text-center text-gray-500 text-sm">
+                No leads found. Add a lead to get started.
+              </div>
+            )}
+            {leads.map((lead) => {
+              const services = getLeadServices(lead);
+              const summary = getServiceSummary(services);
+              return (
+                <div key={lead.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Link href={`/leads/${lead.id}`} className="font-semibold text-gray-800 hover:text-blue-600">
+                        {lead.businessName}
+                      </Link>
+                      <p className="text-xs text-gray-500 mt-1">{lead.contactName || 'No contact'}{lead.phone ? ` • ${lead.phone}` : ''}</p>
+                    </div>
+                    <StatusBadge status={lead.leadStatus} size="sm" />
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <PriorityBadge priority={lead.priority} size="sm" />
+                    <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-gray-600">
+                      Value {formatCurrency(lead.estimatedDealValue || 0)}
+                    </span>
+                    <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-gray-600">
+                      Services {summary.count} {summary.count > 0 ? `• ${formatCurrency(summary.total)}` : ''}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingLead(lead)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <Wrench size={12} /> Services
+                    </button>
+                    <Link
+                      href={`/leads/${lead.id}`}
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                    >
+                      Open lead <ExternalLink size={11} />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -448,6 +551,21 @@ function LeadsContent() {
                               cell = <span className="text-gray-600 text-xs">{lead.state || '—'}</span>;
                             } else if (col.key === 'industry') {
                               cell = <span className="text-gray-600 text-xs">{lead.industry || '—'}</span>;
+                            } else if (col.key === 'services') {
+                              const services = getLeadServices(lead);
+                              const summary = getServiceSummary(services);
+                              cell = (
+                                <div className="space-y-1">
+                                  <p className="text-xs text-gray-600">{summary.count} service{summary.count === 1 ? '' : 's'}</p>
+                                  <p className="text-xs font-medium text-gray-800">{summary.count > 0 ? formatCurrency(summary.total) : '—'}</p>
+                                  <button
+                                    onClick={() => setEditingLead(lead)}
+                                    className="text-xs text-blue-600 hover:underline"
+                                  >
+                                    Manage services
+                                  </button>
+                                </div>
+                              );
                             } else if (col.key === 'status') {
                               cell = (
                                 <>
@@ -498,6 +616,25 @@ function LeadsContent() {
             </table>
           </div>
         </div>
+        )}
+
+        <ServicePricingModal
+          open={Boolean(editingLead)}
+          onClose={() => setEditingLead(null)}
+          title={editingLead ? `Service pricing for ${editingLead.businessName}` : 'Service pricing'}
+          initialItems={editingLead ? (() => {
+            const saved = getLeadServices(editingLead);
+            if (saved.length > 0) return saved;
+            return buildSeedServices({
+              serviceOpportunity: editingLead.serviceOpportunity,
+              suggestedOffer: editingLead.suggestedOffer,
+            });
+          })() : []}
+          onSave={(items) => {
+            if (!editingLead) return;
+            updateLeadServices(editingLead.id, items);
+          }}
+        />
 
       </div>
     </AppLayout>
