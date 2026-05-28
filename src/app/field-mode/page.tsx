@@ -9,6 +9,13 @@ import { DashboardStats, Lead } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { CalendarDays, CheckCircle2, Phone, Route, Smartphone, StickyNote, MessageSquare } from 'lucide-react';
 
+const QUICK_ACTIONS = [
+  { label: 'Call', icon: Phone, href: '/leads' },
+  { label: 'Schedule', icon: CalendarDays, href: '/calendar' },
+  { label: 'Message', icon: MessageSquare, href: '/outreach' },
+  { label: 'Wrap up', icon: CheckCircle2, href: '/routes' },
+];
+
 export default function FieldModePage() {
   const { enabledModules, profile, industryOption } = useDemoMode();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -107,15 +114,10 @@ export default function FieldModePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {[
-                ['Call', Phone, '/leads'],
-                ['Schedule', CalendarDays, '/calendar'],
-                ['Message', MessageSquare, '/outreach'],
-                ['Wrap up', CheckCircle2, '/routes'],
-              ].map(([label, Icon, href]) => (
-                <Link key={label} href={href as string} className="rounded-2xl border border-gray-200 bg-white px-4 py-3 flex items-center gap-3 shadow-sm hover:border-blue-200">
-                  <Icon size={18} className="text-blue-600" />
-                  <span className="text-sm font-medium text-gray-800">{label}</span>
+              {QUICK_ACTIONS.map((action) => (
+                <Link key={action.label} href={action.href} className="rounded-2xl border border-gray-200 bg-white px-4 py-3 flex items-center gap-3 shadow-sm hover:border-blue-200">
+                  <action.icon size={18} className="text-blue-600" />
+                  <span className="text-sm font-medium text-gray-800">{action.label}</span>
                 </Link>
               ))}
             </div>
