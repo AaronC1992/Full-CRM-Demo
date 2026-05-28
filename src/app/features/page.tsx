@@ -41,24 +41,6 @@ export default function FeaturesPage() {
           </div>
         </section>
 
-        <section className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-          <h3 className="font-semibold text-gray-800">Demo talk track</h3>
-          <div className="grid md:grid-cols-3 gap-3 mt-3 text-sm">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
-              <p className="font-semibold text-gray-800">Step 1</p>
-              <p className="text-gray-600 mt-1">Show how leads move from intake to follow up and conversion.</p>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
-              <p className="font-semibold text-gray-800">Step 2</p>
-              <p className="text-gray-600 mt-1">Show operations tools like routes, estimates, invoices, and scheduling.</p>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
-              <p className="font-semibold text-gray-800">Step 3</p>
-              <p className="text-gray-600 mt-1">Show growth tools like automations, reviews, marketing, and reporting.</p>
-            </div>
-          </div>
-        </section>
-
         {grouped.map((group) => (
           <section key={group.category} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
             <div className="flex items-center justify-between gap-2">
@@ -78,7 +60,7 @@ export default function FeaturesPage() {
                     </div>
                     <p className="text-xs text-gray-600 mt-2 leading-relaxed">{feature.description}</p>
                     <div className="mt-3 flex items-center justify-between">
-                      <span className="text-xs text-gray-500">Plan value ${feature.monthlyWeight} per month</span>
+                      <span className="text-xs text-gray-500">Category {group.category}</span>
                       {feature.route ? (
                         <Link href={feature.route} className="text-xs font-semibold text-blue-600 hover:underline">
                           Open
