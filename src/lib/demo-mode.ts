@@ -63,6 +63,15 @@ export type DemoModuleKey =
   | 'lead-pipeline'
   | 'lead-scoring'
   | 'job-tracking'
+  | 'multi-day-operations'
+  | 'job-costing'
+  | 'expense-tracking'
+  | 'asset-tracking'
+  | 'employee-operations'
+  | 'report-builder'
+  | 'payments-reconciliation'
+  | 'marketplace'
+  | 'seat-licensing'
   | 'estimates'
   | 'invoices'
   | 'scheduling'
@@ -99,6 +108,15 @@ export const DEMO_MODULES: DemoModuleDefinition[] = [
   { key: 'lead-pipeline', label: 'Lead pipeline', route: '/pipeline', category: 'Core CRM', description: 'Pipeline boards with stages and follow up tasks.', monthlyWeight: 69, setupWeight: 500 },
   { key: 'lead-scoring', label: 'Lead scoring', route: '/lead-scoring', category: 'Core CRM', description: 'Weighted lead scores and deal priority guidance.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'job-tracking', label: 'Job tracking', route: '/jobs', category: 'Operations', description: 'Jobs, projects, status, and assignments.', monthlyWeight: 89, setupWeight: 700 },
+  { key: 'multi-day-operations', label: 'Multi day operations', route: '/jobs', category: 'Operations', description: 'Multi day jobs with dependencies and progress tracking.', monthlyWeight: 99, setupWeight: 900 },
+  { key: 'job-costing', label: 'Job costing and analysis', route: '/finance', category: 'Operations', description: 'Labor, material, overhead, and margin analysis.', monthlyWeight: 109, setupWeight: 950 },
+  { key: 'expense-tracking', label: 'Expense tracking', route: '/finance', category: 'Operations', description: 'Expense entry, coding, and approval queue.', monthlyWeight: 69, setupWeight: 500 },
+  { key: 'asset-tracking', label: 'Asset tracking', route: '/assets', category: 'Operations', description: 'Equipment registry, maintenance, and warranty tracking.', monthlyWeight: 69, setupWeight: 550 },
+  { key: 'employee-operations', label: 'Employee tracking', route: '/team', category: 'Admin', description: 'Field activity, utilization, and performance views.', monthlyWeight: 79, setupWeight: 650 },
+  { key: 'report-builder', label: 'Custom report builder', route: '/reports', category: 'Admin', description: 'Build custom reports and schedule delivery.', monthlyWeight: 89, setupWeight: 750 },
+  { key: 'payments-reconciliation', label: 'Payments and reconciliation', route: '/finance', category: 'Operations', description: 'Payment feed matching and accounting reconciliation.', monthlyWeight: 99, setupWeight: 850 },
+  { key: 'marketplace', label: 'Marketplace and extensions', route: '/marketplace', category: 'Growth', description: 'Integration catalog and extension management.', monthlyWeight: 59, setupWeight: 450 },
+  { key: 'seat-licensing', label: 'Seat and role licensing', route: '/team', category: 'Admin', description: 'Office and mobile seat model with role controls.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'estimates', label: 'Estimates', route: '/estimates', category: 'Operations', description: 'Estimate builder, statuses, and preview layout.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'invoices', label: 'Invoices', route: '/invoices', category: 'Operations', description: 'Invoice lifecycle with paid and overdue states.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'scheduling', label: 'Scheduling', route: '/calendar', category: 'Operations', description: 'Day, week, and month calendar views.', monthlyWeight: 69, setupWeight: 500 },

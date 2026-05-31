@@ -7,6 +7,7 @@ import {
   MessageSquare, X, BarChart3, MapPin, CalendarDays, UserCheck,
   ClipboardList, ReceiptText, FileText, Megaphone, Star, LineChart, Blocks, Layers,
   Bell, Smartphone, CreditCard, Gauge, Wrench, BookOpen,
+  Wallet, HardHat, Store,
 } from 'lucide-react';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { DemoModuleKey } from '@/lib/demo-mode';
@@ -27,6 +28,9 @@ const MAIN_NAV: NavItem[] = [
   { href: '/pipeline', label: 'Pipeline', icon: Handshake, module: 'lead-pipeline' },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'scheduling' },
   { href: '/jobs', label: 'Jobs or Projects', icon: ClipboardList, module: 'job-tracking' },
+  { href: '/finance', label: 'Finance Ops', icon: Wallet, module: 'job-costing' },
+  { href: '/assets', label: 'Assets', icon: HardHat, module: 'asset-tracking' },
+  { href: '/team', label: 'Team Ops', icon: Users, module: 'employee-operations' },
   { href: '/estimates', label: 'Estimates', icon: FileText, module: 'estimates' },
   { href: '/invoices', label: 'Invoices', icon: ReceiptText, module: 'invoices' },
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
@@ -38,6 +42,7 @@ const MAIN_NAV: NavItem[] = [
   { href: '/marketing', label: 'Marketing', icon: Megaphone, module: 'marketing-dashboard' },
   { href: '/reviews', label: 'Reviews', icon: Star, module: 'review-requests' },
   { href: '/reports', label: 'Reports', icon: LineChart, module: 'reports' },
+  { href: '/marketplace', label: 'Marketplace', icon: Store, module: 'marketplace' },
   { href: '/ai-helper', label: 'AI Assistant', icon: Sparkles, module: 'ai-assistant' },
   { href: '/customer-portal', label: 'Customer Portal', icon: Layers, module: 'customer-portal' },
   { href: '/billing', label: 'Customer Billing', icon: CreditCard, module: 'billing' },

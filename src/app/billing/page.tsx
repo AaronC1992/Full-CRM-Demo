@@ -392,6 +392,9 @@ export default function BillingPage() {
                 ['Review package options', '/package-builder'],
                 ['View invoices', '/invoices'],
                 ['Check reports', '/reports'],
+                ['Open finance ops', '/finance'],
+                ['Open team ops', '/team'],
+                ['Open marketplace', '/marketplace'],
               ].map(([label, href]) => (
                 <Link key={label} href={href} className="rounded-xl border border-gray-200 px-3 py-3 text-sm font-medium text-gray-700 hover:border-blue-200 hover:bg-blue-50">
                   {label}
