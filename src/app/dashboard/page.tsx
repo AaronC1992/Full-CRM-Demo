@@ -165,13 +165,13 @@ export default function DashboardPage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           <StatCard label="Total Leads" value={stats.totalLeads} icon={Users} color="bg-blue-500" href="/leads" />
-          <StatCard label="New Leads" value={stats.newLeads} icon={TrendingUp} color="bg-indigo-500" />
-          <StatCard label="Contacted" value={stats.contactedLeads} icon={PhoneCall} color="bg-cyan-500" />
-          <StatCard label="Interested" value={stats.interestedLeads} icon={Star} color="bg-teal-500" />
-          <StatCard label="Demo Sent" value={stats.demoSentLeads} icon={Send} color="bg-violet-500" />
-          <StatCard label="Follow Up Due" value={stats.followUpDueToday} icon={Clock} color="bg-amber-500" />
-          <StatCard label="Won Deals" value={stats.wonDeals} icon={CheckCircle2} color="bg-green-500" href="/customers" />
-          <StatCard label="Lost Deals" value={stats.lostDeals} icon={XCircle} color="bg-red-400" />
+          <StatCard label="New Leads" value={stats.newLeads} icon={TrendingUp} color="bg-indigo-500" href="/leads?status=New" />
+          <StatCard label="Contacted" value={stats.contactedLeads} icon={PhoneCall} color="bg-cyan-500" href="/leads?status=Contacted" />
+          <StatCard label="Interested" value={stats.interestedLeads} icon={Star} color="bg-teal-500" href="/leads?status=Interested" />
+          <StatCard label="Demo Sent" value={stats.demoSentLeads} icon={Send} color="bg-violet-500" href="/leads?status=Demo%20website%20sent" />
+          <StatCard label="Follow Up Due" value={stats.followUpDueToday} icon={Clock} color="bg-amber-500" href="/leads?filter=followup" />
+          <StatCard label="Won Deals" value={stats.wonDeals} icon={CheckCircle2} color="bg-green-500" href="/leads?status=Won" />
+          <StatCard label="Lost Deals" value={stats.lostDeals} icon={XCircle} color="bg-red-400" href="/leads?status=Lost" />
         </div>
 
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">

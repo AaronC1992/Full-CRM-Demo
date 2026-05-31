@@ -88,6 +88,7 @@ function getInitialSimpleView(): boolean {
 function LeadsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const quickFilter = searchParams.get('filter') || '';
   const [leads, setLeads] = useState<Lead[]>(getInitialLeads);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -136,7 +137,18 @@ function LeadsContent() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  const displayedLeads = filterCategory ? leads.filter((lead) => getLeadCategory(lead) === filterCategory) : leads;
+  const displayedLeads = leads.filter((lead) => {
+    if (filterCategory && getLeadCategory(lead) !== filterCategory) return false;
+
+    if (quickFilter === 'followup') {
+      const today = new Date().toISOString().slice(0, 10);
+      const status = lead.leadStatus;
+      if (!lead.nextFollowUpDate || lead.nextFollowUpDate > today) return false;
+      if (status === 'Won' || status === 'Lost' || status === 'Not a fit') return false;
+    }
+
+    return true;
+  });
 
   const toggleSelect = (id: number) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const toggleSelectAll = () => setSelectedIds(prev => prev.size === displayedLeads.length ? new Set() : new Set(displayedLeads.map(l => l.id)));
@@ -259,7 +271,7 @@ function LeadsContent() {
     router.replace('/leads');
   };
 
-  const activeFilters = [search.trim(), filterStatus, filterPriority, filterIndustry, filterCategory].filter(Boolean).length;
+  const activeFilters = [search.trim(), filterStatus, filterPriority, filterIndustry, filterCategory, quickFilter].filter(Boolean).length;
 
   return (
     <AppLayout title="Leads">
