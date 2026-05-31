@@ -62,14 +62,6 @@ export default function FeatureBuilderPage() {
                         className="mt-1 h-4 w-4"
                       />
                     </div>
-                    <div className="mt-3 flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Setup guide</span>
-                      <span className="font-semibold text-gray-700">${module.setupWeight}</span>
-                    </div>
-                    <div className="mt-1 flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Monthly plan</span>
-                      <span className="font-semibold text-gray-700">${module.monthlyWeight}</span>
-                    </div>
                   </label>
                 );
               })}
