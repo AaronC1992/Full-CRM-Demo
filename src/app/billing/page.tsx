@@ -37,6 +37,8 @@ export default function BillingPage() {
   const [state, setState] = useState<MockBillingState>(() => loadMockBillingState());
   const [invoiceForm, setInvoiceForm] = useState(DEFAULT_FORM);
   const [draftConfig, setDraftConfig] = useState<MockStripeConfig>(() => loadMockBillingState().config);
+  const [officeSeats, setOfficeSeats] = useState(3);
+  const [mobileSeats, setMobileSeats] = useState(6);
 
   useEffect(() => {
     const loaded = loadMockBillingState();
@@ -313,6 +315,59 @@ export default function BillingPage() {
               In a real Stripe setup, these actions would map to checkout sessions, invoice webhooks, and payment confirmations from Stripe.
             </div>
           </div>
+        </div>
+
+        <div className="grid lg:grid-cols-[1fr_0.95fr] gap-4">
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-center gap-2">
+              <CreditCard size={17} className="text-blue-500" />
+              <h3 className="font-semibold text-gray-800">Seat control center</h3>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">Align office and mobile licensing with how the demo sells the product to different roles.</p>
+            <div className="grid sm:grid-cols-2 gap-3 mt-4 text-sm">
+              <div className="rounded-xl border border-gray-200 p-3">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Office seats</label>
+                <p className="text-gray-700 mt-1">Used by admins and dispatchers.</p>
+                <input type="range" min={1} max={20} value={officeSeats} onChange={(event) => setOfficeSeats(Number(event.target.value))} className="w-full mt-3" />
+                <p className="text-sm font-medium text-gray-800 mt-2">{officeSeats} seats</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-3">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mobile seats</label>
+                <p className="text-gray-700 mt-1">Used by field techs and sales.</p>
+                <input type="range" min={1} max={30} value={mobileSeats} onChange={(event) => setMobileSeats(Number(event.target.value))} className="w-full mt-3" />
+                <p className="text-sm font-medium text-gray-800 mt-2">{mobileSeats} seats</p>
+              </div>
+            </div>
+            <div className="mt-4 rounded-xl bg-gray-50 border border-gray-200 p-4 text-sm text-gray-700">
+              <p className="font-semibold">Seat model summary</p>
+              <p className="mt-1">Office roles: Admin and Dispatcher</p>
+              <p>Mobile roles: Field tech and Sales</p>
+              <p className="mt-2">Estimated monthly seat cost: ${((officeSeats * 89) + (mobileSeats * 39)).toLocaleString()}</p>
+            </div>
+          </section>
+
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <ReceiptText size={17} className="text-violet-500" />
+              <h3 className="font-semibold text-gray-800">Licensing links</h3>
+            </div>
+            <p className="text-sm text-gray-600">Tie the billing demo back to finance, team, and accounting sync so the buyer sees the full package story.</p>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {[
+                ['Open finance ops', '/finance'],
+                ['Open team ops', '/team'],
+                ['Open integrations', '/integrations'],
+                ['Open marketplace', '/marketplace'],
+              ].map(([label, href]) => (
+                <Link key={label} href={href} className="rounded-xl border border-gray-200 px-3 py-3 text-sm font-medium text-gray-700 hover:border-blue-200 hover:bg-blue-50">
+                  {label}
+                </Link>
+              ))}
+            </div>
+            <div className="rounded-xl bg-slate-900 text-white p-4 text-sm">
+              Demo note, billing stays fully simulated, but the seat controls, invoice flow, and sync points are all clickable.
+            </div>
+          </section>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-4">

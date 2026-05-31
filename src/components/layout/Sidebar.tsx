@@ -7,7 +7,7 @@ import {
   MessageSquare, X, BarChart3, MapPin, CalendarDays, UserCheck,
   ClipboardList, ReceiptText, FileText, Megaphone, Star, LineChart, Blocks, Layers,
   Bell, Smartphone, CreditCard, Gauge, Wrench, BookOpen,
-  Wallet, HardHat, Store,
+  Wallet, HardHat, Store, Navigation, Building2, Link2, Clock,
 } from 'lucide-react';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
 import { DemoModuleKey } from '@/lib/demo-mode';
@@ -26,11 +26,15 @@ const MAIN_NAV: NavItem[] = [
   { href: '/leads', label: 'Leads', icon: Users },
   { href: '/lead-scoring', label: 'Lead scoring', icon: Gauge, module: 'lead-scoring' },
   { href: '/pipeline', label: 'Pipeline', icon: Handshake, module: 'lead-pipeline' },
+  { href: '/communications', label: 'Communications', icon: MessageSquare, module: 'communications' },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'scheduling' },
   { href: '/jobs', label: 'Jobs or Projects', icon: ClipboardList, module: 'job-tracking' },
   { href: '/finance', label: 'Finance Ops', icon: Wallet, module: 'job-costing' },
+  { href: '/dispatch', label: 'Dispatch', icon: Navigation, module: 'dispatch' },
   { href: '/assets', label: 'Assets', icon: HardHat, module: 'asset-tracking' },
+  { href: '/locations', label: 'Locations', icon: Building2, module: 'locations' },
   { href: '/team', label: 'Team Ops', icon: Users, module: 'employee-operations' },
+  { href: '/labor', label: 'Labor', icon: Clock, module: 'labor-tracking' },
   { href: '/estimates', label: 'Estimates', icon: FileText, module: 'estimates' },
   { href: '/invoices', label: 'Invoices', icon: ReceiptText, module: 'invoices' },
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
@@ -43,6 +47,7 @@ const MAIN_NAV: NavItem[] = [
   { href: '/reviews', label: 'Reviews', icon: Star, module: 'review-requests' },
   { href: '/reports', label: 'Reports', icon: LineChart, module: 'reports' },
   { href: '/marketplace', label: 'Marketplace', icon: Store, module: 'marketplace' },
+  { href: '/integrations', label: 'Integrations', icon: Link2, module: 'accounting-sync' },
   { href: '/ai-helper', label: 'AI Assistant', icon: Sparkles, module: 'ai-assistant' },
   { href: '/customer-portal', label: 'Customer Portal', icon: Layers, module: 'customer-portal' },
   { href: '/billing', label: 'Customer Billing', icon: CreditCard, module: 'billing' },

@@ -62,14 +62,19 @@ export type DemoModuleKey =
   | 'customers'
   | 'lead-pipeline'
   | 'lead-scoring'
+  | 'communications'
   | 'job-tracking'
   | 'multi-day-operations'
   | 'job-costing'
   | 'expense-tracking'
   | 'asset-tracking'
+  | 'dispatch'
+  | 'locations'
   | 'employee-operations'
+  | 'labor-tracking'
   | 'report-builder'
   | 'payments-reconciliation'
+  | 'accounting-sync'
   | 'marketplace'
   | 'seat-licensing'
   | 'estimates'
@@ -107,14 +112,19 @@ export const DEMO_MODULES: DemoModuleDefinition[] = [
   { key: 'customers', label: 'Customer CRM', route: '/customers', category: 'Core CRM', description: 'Customer records, notes, tags, files, and history.', monthlyWeight: 79, setupWeight: 600 },
   { key: 'lead-pipeline', label: 'Lead pipeline', route: '/pipeline', category: 'Core CRM', description: 'Pipeline boards with stages and follow up tasks.', monthlyWeight: 69, setupWeight: 500 },
   { key: 'lead-scoring', label: 'Lead scoring', route: '/lead-scoring', category: 'Core CRM', description: 'Weighted lead scores and deal priority guidance.', monthlyWeight: 59, setupWeight: 450 },
+  { key: 'communications', label: 'Communications hub', route: '/communications', category: 'Automation', description: 'Unified inbox for text and email conversations.', monthlyWeight: 79, setupWeight: 600 },
   { key: 'job-tracking', label: 'Job tracking', route: '/jobs', category: 'Operations', description: 'Jobs, projects, status, and assignments.', monthlyWeight: 89, setupWeight: 700 },
   { key: 'multi-day-operations', label: 'Multi day operations', route: '/jobs', category: 'Operations', description: 'Multi day jobs with dependencies and progress tracking.', monthlyWeight: 99, setupWeight: 900 },
   { key: 'job-costing', label: 'Job costing and analysis', route: '/finance', category: 'Operations', description: 'Labor, material, overhead, and margin analysis.', monthlyWeight: 109, setupWeight: 950 },
   { key: 'expense-tracking', label: 'Expense tracking', route: '/finance', category: 'Operations', description: 'Expense entry, coding, and approval queue.', monthlyWeight: 69, setupWeight: 500 },
   { key: 'asset-tracking', label: 'Asset tracking', route: '/assets', category: 'Operations', description: 'Equipment registry, maintenance, and warranty tracking.', monthlyWeight: 69, setupWeight: 550 },
+  { key: 'dispatch', label: 'Dispatch board', route: '/dispatch', category: 'Operations', description: 'Smart maps, route queues, and crew dispatch.', monthlyWeight: 99, setupWeight: 800 },
+  { key: 'locations', label: 'Location management', route: '/locations', category: 'Admin', description: 'Branches, territories, and per location controls.', monthlyWeight: 69, setupWeight: 550 },
   { key: 'employee-operations', label: 'Employee tracking', route: '/team', category: 'Admin', description: 'Field activity, utilization, and performance views.', monthlyWeight: 79, setupWeight: 650 },
+  { key: 'labor-tracking', label: 'Labor tracking', route: '/labor', category: 'Operations', description: 'Clock in and out, timesheets, and job labor detail.', monthlyWeight: 79, setupWeight: 650 },
   { key: 'report-builder', label: 'Custom report builder', route: '/reports', category: 'Admin', description: 'Build custom reports and schedule delivery.', monthlyWeight: 89, setupWeight: 750 },
   { key: 'payments-reconciliation', label: 'Payments and reconciliation', route: '/finance', category: 'Operations', description: 'Payment feed matching and accounting reconciliation.', monthlyWeight: 99, setupWeight: 850 },
+  { key: 'accounting-sync', label: 'Accounting sync', route: '/integrations', category: 'Operations', description: 'QuickBooks style sync and ledger mapping.', monthlyWeight: 89, setupWeight: 700 },
   { key: 'marketplace', label: 'Marketplace and extensions', route: '/marketplace', category: 'Growth', description: 'Integration catalog and extension management.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'seat-licensing', label: 'Seat and role licensing', route: '/team', category: 'Admin', description: 'Office and mobile seat model with role controls.', monthlyWeight: 59, setupWeight: 450 },
   { key: 'estimates', label: 'Estimates', route: '/estimates', category: 'Operations', description: 'Estimate builder, statuses, and preview layout.', monthlyWeight: 59, setupWeight: 450 },

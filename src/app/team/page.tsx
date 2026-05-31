@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import ModuleGate from '@/components/demo/ModuleGate';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
-import { Users, Smartphone, Laptop } from 'lucide-react';
+import { Users, Smartphone, Laptop, Clock3, ChevronRight } from 'lucide-react';
 
 type Role = 'Admin' | 'Dispatcher' | 'Field tech' | 'Sales';
 
@@ -67,6 +68,23 @@ export default function TeamPage() {
           </div>
         </div>
 
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Office seats used</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{seatUsage.officeUsed} of {officeSeats}</p>
+          </div>
+          <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Mobile seats used</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{seatUsage.mobileUsed} of {mobileSeats}</p>
+          </div>
+          <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Labor tracking</p>
+            <Link href="/labor" className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline">
+              Open labor view <ChevronRight size={14} />
+            </Link>
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-[1fr_0.9fr] gap-4">
           <section className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
             <div className="flex items-center gap-2">
@@ -93,6 +111,14 @@ export default function TeamPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-4 rounded-xl bg-gray-50 border border-gray-200 p-4 text-sm text-gray-700">
+              <div className="flex items-center gap-2">
+                <Clock3 size={15} className="text-blue-500" />
+                Labor and activity view
+              </div>
+              <p className="mt-2">Use the separate labor page for clock in, clock out, driving, and job time so the demo can show a more realistic field operation workflow.</p>
             </div>
           </section>
 
@@ -125,6 +151,10 @@ export default function TeamPage() {
                 <p>Mobile roles: Field tech and Sales</p>
                 <p className="mt-2">Estimated monthly seat cost: ${((officeSeats * 89) + (mobileSeats * 39)).toLocaleString()}</p>
               </div>
+
+              <Link href="/integrations" className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
+                Review accounting sync
+              </Link>
             </div>
           </section>
         </div>

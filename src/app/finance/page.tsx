@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import ModuleGate from '@/components/demo/ModuleGate';
 import { useDemoMode } from '@/components/demo/DemoModeProvider';
-import { Calculator, ClipboardCheck, Receipt, Wallet } from 'lucide-react';
+import { Calculator, ClipboardCheck, Receipt, Wallet, Link2, RefreshCw } from 'lucide-react';
 
 type CostingRow = {
   id: string;
@@ -87,6 +88,7 @@ export default function FinancePage() {
   const { enabledModules } = useDemoMode();
   const [state, setState] = useState<FinanceState>(DEFAULT_STATE);
   const [expenseForm, setExpenseForm] = useState({ date: '2026-06-01', vendor: '', category: 'Travel', amount: '0', jobRef: '' });
+  const [syncConnected, setSyncConnected] = useState(true);
 
   useEffect(() => {
     setState(loadState());
@@ -134,6 +136,37 @@ export default function FinancePage() {
             <p className="text-2xl font-bold text-red-600 mt-1">{totals.unmatched}</p>
           </div>
         </div>
+
+        <section className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+          <div className="flex items-center gap-2 justify-between flex-wrap">
+            <div className="flex items-center gap-2">
+              <Link2 size={16} className="text-blue-500" />
+              <h2 className="font-semibold text-gray-800">Accounting sync</h2>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setSyncConnected((current) => !current)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700">
+                <RefreshCw size={15} /> {syncConnected ? 'Disconnect' : 'Connect'} QuickBooks
+              </button>
+              <Link href="/integrations" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium">
+                Open integrations
+              </Link>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3 mt-4 text-sm">
+            <div className="rounded-xl border border-gray-200 p-3 bg-gray-50">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Connection</p>
+              <p className="font-semibold text-gray-800 mt-1">{syncConnected ? 'Live mock connection' : 'Disconnected'}</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-3 bg-gray-50">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Last sync</p>
+              <p className="font-semibold text-gray-800 mt-1">Today 10:45 AM</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-3 bg-gray-50">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Exceptions</p>
+              <p className="font-semibold text-gray-800 mt-1">{totals.unmatched} need review</p>
+            </div>
+          </div>
+        </section>
 
         <section className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
           <div className="flex items-center gap-2">
